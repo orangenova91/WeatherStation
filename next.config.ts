@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  outputFileTracingIncludes: {
+    "/download/weather_station.ino": ["./arduino_ide/weather_station/weather_station.ino"],
+  },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

@@ -1,17 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { PublicReading } from "@/lib/types";
 
-const stationIcon = L.divIcon({
-  className: "station-marker",
-  html: '<span class="station-marker-dot" style="display:block;box-sizing:border-box;width:18px;height:18px;border-radius:999px;background:#d89a2b;border:2px solid #12202a;box-shadow:0 0 0 4px rgba(216,154,43,.35)"></span>',
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-  popupAnchor: [0, -14],
-});
+const freshWindowMs = 60 * 60 * 1000;
+
+function isFresh(receivedAt: string) {
+  const received = new Date(receivedAt).getTime();
+  return Number.isFinite(received) && Date.now() - received <= freshWindowMs;
+}
+
+function stationIcon(fresh: boolean) {
+  const background = fresh ? "#d89a2b" : "#9aa6ae";
+  const halo = fresh ? "rgba(216,154,43,.35)" : "rgba(154,166,174,.45)";
+  return L.divIcon({
+    className: "station-marker",
+    html: `<span class="station-marker-dot" style="display:block;box-sizing:border-box;width:18px;height:18px;border-radius:999px;background:${background};border:2px solid #12202a;box-shadow:0 0 0 4px ${halo}"></span>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -14],
+  });
+}
 
 const koreaCenter: L.LatLngExpression = [36.4, 127.8];
 const popupStyleId = "station-popup-style";
@@ -139,7 +150,6 @@ function popupRow(label: string, value: string) {
 function popupHtml(reading: PublicReading) {
   return `<div class="station-popup-card">
     <div class="station-popup-facts">
-      ${popupRow("Sender Name", escapeHtml(reading.senderName))}
       ${popupRow("Sheet Name", escapeHtml(reading.sheetName))}
       ${popupRow("Device Name", escapeHtml(reading.deviceName))}
       ${popupRow("Sensor Name", escapeHtml(reading.sensorName))}
@@ -149,6 +159,7 @@ function popupHtml(reading: PublicReading) {
       ${popupRow("Temperature", `${formatMeasure(reading.temperature)}°C`)}
       ${popupRow("Humidity", `${formatMeasure(reading.humidity)}%`)}
       ${popupRow("Received", escapeHtml(formatTime(reading.receivedAt)))}
+      ${popupRow("Sender Name", escapeHtml(reading.senderName))}
     </div>
   </div>`;
 }
@@ -158,6 +169,7 @@ export default function MapCanvas({ readings }: { readings: PublicReading[] }) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   const placeKeyRef = useRef("");
+  const [pointer, setPointer] = useState<{ lat: number; lng: number } | null>(null);
   const markers = useMemo(
     () => readings.filter((reading) => Number.isFinite(reading.latitude) && Number.isFinite(reading.longitude)),
     [readings],
@@ -184,7 +196,18 @@ export default function MapCanvas({ readings }: { readings: PublicReading[] }) {
     });
     observer.observe(node);
 
+    const onMouseMove = (event: L.LeafletMouseEvent) => {
+      setPointer({ lat: event.latlng.lat, lng: event.latlng.lng });
+    };
+    const onMouseOut = () => {
+      setPointer(null);
+    };
+    map.on("mousemove", onMouseMove);
+    map.getContainer().addEventListener("mouseleave", onMouseOut);
+
     return () => {
+      map.off("mousemove", onMouseMove);
+      map.getContainer().removeEventListener("mouseleave", onMouseOut);
       observer.disconnect();
       map.remove();
       mapRef.current = null;
@@ -200,7 +223,7 @@ export default function MapCanvas({ readings }: { readings: PublicReading[] }) {
 
     group.clearLayers();
     for (const reading of markers) {
-      L.marker([reading.latitude, reading.longitude], { icon: stationIcon })
+      L.marker([reading.latitude, reading.longitude], { icon: stationIcon(isFresh(reading.receivedAt)) })
         .bindPopup(popupHtml(reading), {
           className: "station-popup",
           autoPan: true,
@@ -237,9 +260,33 @@ export default function MapCanvas({ readings }: { readings: PublicReading[] }) {
   return (
     <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-line">
       <div ref={containerRef} className="h-full w-full" />
-      <div className="pointer-events-none absolute top-4 right-4 z-[500] rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
-        {markers.length === 0 ? "아직 수신된 좌표가 없습니다." : `관측 지점 ${markers.length}곳`}
+      <div className="pointer-events-none absolute top-4 right-4 z-[500] flex flex-col items-end gap-2">
+        <div className="rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
+          {markers.length === 0 ? "아직 수신된 좌표가 없습니다." : `관측 지점 ${markers.length}곳`}
+        </div>
+        <div className="rounded-2xl border border-line bg-card px-3 py-2 text-xs text-muted">
+          <p className="mb-1.5 font-medium text-ink">마커 색</p>
+          <p className="flex items-center gap-2">
+            <span
+              className="inline-block h-3 w-3 shrink-0 rounded-full"
+              style={{ background: "#d89a2b", boxShadow: "0 0 0 2px #12202a" }}
+            />
+            1시간 이내 수신
+          </p>
+          <p className="mt-1.5 flex items-center gap-2">
+            <span
+              className="inline-block h-3 w-3 shrink-0 rounded-full"
+              style={{ background: "#9aa6ae", boxShadow: "0 0 0 2px #12202a" }}
+            />
+            1시간 넘게 없음
+          </p>
+        </div>
       </div>
+      {pointer ? (
+        <div className="pointer-events-none absolute bottom-4 left-4 z-[500] rounded-full border border-line bg-card px-3 py-1 font-mono text-xs text-ink">
+          Lat {formatCoord(pointer.lat)} · Lon {formatCoord(pointer.lng)}
+        </div>
+      ) : null}
     </section>
   );
 }

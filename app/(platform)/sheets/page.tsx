@@ -6,7 +6,7 @@ import { connectDb } from "@/lib/db";
 import { Sheet } from "@/models/Sheet";
 import { redirect } from "next/navigation";
 
-export const metadata = { title: "내 시트" };
+export const metadata = { title: "Data 서버 만들기" };
 
 export default function SheetsPage() {
   return (
@@ -38,7 +38,7 @@ async function SheetsContent() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-medium">내 시트</h1>
+        <h1 className="text-2xl font-medium">Data 서버 만들기</h1>
         <p className="mt-1 text-sm text-muted">기기에서 보낼 데이터베이스 시트를 만듭니다.</p>
       </div>
       <SheetCreateForm />

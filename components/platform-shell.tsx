@@ -11,9 +11,10 @@ type PlatformShellProps = {
 
 const titles: Array<{ prefix: string; title: string }> = [
   { prefix: "/sheets/", title: "시트 수신" },
-  { prefix: "/sheets", title: "내 시트" },
+  { prefix: "/sheets", title: "Data 서버 만들기" },
   { prefix: "/login", title: "로그인" },
   { prefix: "/signup", title: "가입" },
+  { prefix: "/guide", title: "기상대 설치 방법" },
   { prefix: "/", title: "공유 지도" },
 ];
 
@@ -56,9 +57,12 @@ export function PlatformShell({ user, children }: PlatformShellProps) {
           <Link href="/" className={navClass(pathname === "/")}>
             공유 지도
           </Link>
+          <Link href="/guide" className={navClass(pathname === "/guide")}>
+            기상대 설치 방법
+          </Link>
           {user ? (
             <Link href="/sheets" className={navClass(pathname.startsWith("/sheets"))}>
-              내 시트
+              Data 서버 만들기
             </Link>
           ) : null}
         </nav>

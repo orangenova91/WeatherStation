@@ -66,8 +66,8 @@ WiFiManagerParameter customIngestUrlParam("ingesturl", "Ingest URL", ingestUrlBu
 WiFiManagerParameter customDeviceNameParam("devicename", "Device Name", deviceNameBuffer, DEVICE_NAME_MAX_LEN);
 WiFiManagerParameter customSensorNameParam("sensorname", "Sensor Name", sensorNameBuffer, SENSOR_NAME_MAX_LEN);
 WiFiManagerParameter customLocationNameParam("locname", "Location Name", locationNameBuffer, LOCATION_NAME_MAX_LEN);
-WiFiManagerParameter customLatParam("lat", "Latitude (e.g. 35.5384)", latBuffer, LAT_LNG_MAX_LEN);
-WiFiManagerParameter customLngParam("lng", "Longitude (e.g. 129.3114)", lngBuffer, LAT_LNG_MAX_LEN);
+WiFiManagerParameter customLatParam("lat", "Latitude (e.g. 35.53847)", latBuffer, LAT_LNG_MAX_LEN);
+WiFiManagerParameter customLngParam("lng", "Longitude (e.g. 129.31142)", lngBuffer, LAT_LNG_MAX_LEN);
 WiFiManagerParameter customSenderNameParam("sendername", "Sender Name", senderNameBuffer, SENDER_NAME_MAX_LEN);
 
 // ===== 화면 상태 정의 =====
