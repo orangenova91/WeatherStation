@@ -1,5 +1,6 @@
 export type ReadingView = {
   id: string;
+  senderName: string;
   deviceName: string;
   sensorName: string;
   temperature: number;
@@ -28,4 +29,5 @@ export const EXAMPLE_READING = {
   locationName: "서울",
   latitude: 37.5665,
   longitude: 126.978,
+  senderName: "kim",
 };

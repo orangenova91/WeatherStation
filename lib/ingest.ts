@@ -1,4 +1,5 @@
 export type IngestInput = {
+  senderName: string;
   deviceName: string;
   sensorName: string;
   temperature: number;
@@ -35,6 +36,8 @@ export function parseIngestBody(
   }
 
   const data = body as Record<string, unknown>;
+  const senderName = readText(data.senderName, "발신자명", 80);
+  if (!senderName.ok) return senderName;
   const deviceName = readText(data.deviceName, "기기명", 80);
   if (!deviceName.ok) return deviceName;
   const sensorName = readText(data.sensorName, "센서명", 80);
@@ -59,6 +62,7 @@ export function parseIngestBody(
   return {
     ok: true,
     value: {
+      senderName: senderName.value,
       deviceName: deviceName.value,
       sensorName: sensorName.value,
       temperature,

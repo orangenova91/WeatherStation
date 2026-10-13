@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source inline("leaflet-container station-marker station-marker-dot");
 
 :root {
   --paper: #f3efe6;
@@ -35,4 +36,27 @@ body {
 button,
 input {
   font: inherit;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 0;
+  background: #e7f0ea;
+  font-family: inherit;
+}
+
+.station-marker {
+  background: transparent;
+  border: none;
+}
+
+.station-marker-dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #d89a2b;
+  border: 2px solid #12202a;
+  box-shadow: 0 0 0 4px rgba(216, 154, 43, 0.35);
 }

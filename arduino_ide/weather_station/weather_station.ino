@@ -40,6 +40,7 @@ const unsigned long WIFI_PORTAL_TIMEOUT = 180;
 // 구글 시트용으로 저장해 둔 값은 쓰지 않도록 저장 공간을 분리했다.
 Preferences prefs;
 String ingestUrl = "";
+String senderName = "";
 String deviceName = "";
 String sensorName = "";
 String locationName = "";
@@ -47,12 +48,14 @@ String deviceLat = "";
 String deviceLng = "";
 
 #define INGEST_URL_MAX_LEN 220
+#define SENDER_NAME_MAX_LEN 40
 #define DEVICE_NAME_MAX_LEN 40
 #define SENSOR_NAME_MAX_LEN 40
 #define LOCATION_NAME_MAX_LEN 40
 #define LAT_LNG_MAX_LEN 24
 
 char ingestUrlBuffer[INGEST_URL_MAX_LEN] = "";
+char senderNameBuffer[SENDER_NAME_MAX_LEN] = "";
 char deviceNameBuffer[DEVICE_NAME_MAX_LEN] = "";
 char sensorNameBuffer[SENSOR_NAME_MAX_LEN] = "DHT11";
 char locationNameBuffer[LOCATION_NAME_MAX_LEN] = "";
@@ -65,6 +68,7 @@ WiFiManagerParameter customSensorNameParam("sensorname", "Sensor Name", sensorNa
 WiFiManagerParameter customLocationNameParam("locname", "Location Name", locationNameBuffer, LOCATION_NAME_MAX_LEN);
 WiFiManagerParameter customLatParam("lat", "Latitude (e.g. 35.5384)", latBuffer, LAT_LNG_MAX_LEN);
 WiFiManagerParameter customLngParam("lng", "Longitude (e.g. 129.3114)", lngBuffer, LAT_LNG_MAX_LEN);
+WiFiManagerParameter customSenderNameParam("sendername", "Sender Name", senderNameBuffer, SENDER_NAME_MAX_LEN);
 
 // ===== 화면 상태 정의 =====
 enum ScreenState { HOME, MENU, MEASURING, SET_INTERVAL, WIFI_CONNECT };
@@ -109,6 +113,7 @@ void setup() {
 
   prefs.begin("wscfg", true);
   ingestUrl = prefs.getString("url", "");
+  senderName = prefs.getString("sender", "");
   deviceName = prefs.getString("devname", "");
   sensorName = prefs.getString("sensor", "DHT11");
   locationName = prefs.getString("locname", "");
@@ -123,6 +128,7 @@ void setup() {
   wm.addParameter(&customLocationNameParam);
   wm.addParameter(&customLatParam);
   wm.addParameter(&customLngParam);
+  wm.addParameter(&customSenderNameParam);
 
   dht.begin();
 
@@ -429,6 +435,7 @@ void startWiFiSetup() {
   display.display();
 
   copyToParam(ingestUrl, ingestUrlBuffer, INGEST_URL_MAX_LEN, customIngestUrlParam);
+  copyToParam(senderName, senderNameBuffer, SENDER_NAME_MAX_LEN, customSenderNameParam);
   copyToParam(deviceName, deviceNameBuffer, DEVICE_NAME_MAX_LEN, customDeviceNameParam);
   copyToParam(sensorName, sensorNameBuffer, SENSOR_NAME_MAX_LEN, customSensorNameParam);
   copyToParam(locationName, locationNameBuffer, LOCATION_NAME_MAX_LEN, customLocationNameParam);
@@ -442,6 +449,10 @@ void startWiFiSetup() {
     String enteredUrl = customIngestUrlParam.getValue();
     enteredUrl.trim();
     if (enteredUrl.length() > 0) ingestUrl = enteredUrl;
+
+    String enteredSender = customSenderNameParam.getValue();
+    enteredSender.trim();
+    if (enteredSender.length() > 0) senderName = enteredSender;
 
     String enteredName = customDeviceNameParam.getValue();
     enteredName.trim();
@@ -465,6 +476,7 @@ void startWiFiSetup() {
 
     prefs.begin("wscfg", false);
     prefs.putString("url", ingestUrl);
+    prefs.putString("sender", senderName);
     prefs.putString("devname", deviceName);
     prefs.putString("sensor", sensorName);
     prefs.putString("locname", locationName);
@@ -474,7 +486,9 @@ void startWiFiSetup() {
 
     Serial.print("송신 주소 저장됨: ");
     Serial.println(ingestUrl);
-    Serial.print("기기명/센서명/위치명: ");
+    Serial.print("발신자명/기기명/센서명/위치명: ");
+    Serial.print(senderName);
+    Serial.print(" / ");
     Serial.print(deviceName);
     Serial.print(" / ");
     Serial.print(sensorName);
@@ -567,8 +581,8 @@ bool isDecimal(const String& value) {
 // 같은 WiFi의 개발 서버는 http, 배포 주소는 https를 그대로 넣으면 된다.
 void sendToPlatform(float temp, float humi) {
   if (WiFi.status() != WL_CONNECTED) return;
-  if (ingestUrl.length() == 0 || deviceName.length() == 0 || sensorName.length() == 0 || locationName.length() == 0) {
-    Serial.println("플랫폼 전송 생략: 송신 주소, 기기명, 센서명, 위치명을 WiFi 설정에서 입력하세요.");
+  if (ingestUrl.length() == 0 || senderName.length() == 0 || deviceName.length() == 0 || sensorName.length() == 0 || locationName.length() == 0) {
+    Serial.println("플랫폼 전송 생략: 송신 주소, 발신자명, 기기명, 센서명, 위치명을 WiFi 설정에서 입력하세요.");
     return;
   }
   if (!isDecimal(deviceLat) || !isDecimal(deviceLng)) {
@@ -603,7 +617,8 @@ void sendToPlatform(float temp, float humi) {
                    ",\"humidity\":" + String(humi, 1) +
                    ",\"locationName\":\"" + jsonEscape(locationName) +
                    "\",\"latitude\":" + deviceLat +
-                   ",\"longitude\":" + deviceLng + "}";
+                   ",\"longitude\":" + deviceLng +
+                   ",\"senderName\":\"" + jsonEscape(senderName) + "\"}";
 
   int httpCode = http.POST(payload);
   String response = http.getString();

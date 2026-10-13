@@ -160,7 +160,7 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
           <p className="px-5 py-8 text-sm text-muted">아직 수신된 값이 없습니다.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] text-left text-sm">
+            <table className="w-full min-w-[980px] text-left text-sm">
               <thead className="bg-paper text-xs text-muted">
                 <tr>
                   <th className="px-4 py-3 font-medium">수신 시각</th>
@@ -171,6 +171,7 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
                   <th className="px-4 py-3 font-medium">위치명</th>
                   <th className="px-4 py-3 font-medium">위도</th>
                   <th className="px-4 py-3 font-medium">경도</th>
+                  <th className="px-4 py-3 font-medium">발신자명</th>
                 </tr>
               </thead>
               <tbody>
@@ -187,6 +188,7 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
                     <td className="px-4 py-3">{reading.locationName}</td>
                     <td className="px-4 py-3 font-mono">{reading.latitude.toFixed(5)}</td>
                     <td className="px-4 py-3 font-mono">{reading.longitude.toFixed(5)}</td>
+                    <td className="px-4 py-3">{reading.senderName}</td>
                   </tr>
                 ))}
               </tbody>

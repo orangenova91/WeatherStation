@@ -2,7 +2,9 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { MapPlaceholder } from "@/components/map-placeholder";
 import { PlatformFrame } from "@/components/platform-frame";
+import { SharedMap } from "@/components/shared-map";
 import { listPublicReadings } from "@/lib/readings";
+import type { PublicReading } from "@/lib/types";
 
 export default function HomePage() {
   return (
@@ -16,15 +18,12 @@ export default function HomePage() {
 
 async function HomeMap() {
   await connection();
-  let count = 0;
-  let offline = false;
+  let readings: PublicReading[] | null = null;
   try {
-    const readings = await listPublicReadings();
-    count = readings.length;
+    readings = await listPublicReadings();
   } catch (error) {
     console.error(error);
-    offline = true;
   }
-  if (offline) return <MapPlaceholder offline />;
-  return <MapPlaceholder count={count} />;
+  if (!readings) return <MapPlaceholder offline />;
+  return <SharedMap initialReadings={readings} />;
 }

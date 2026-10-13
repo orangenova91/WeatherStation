@@ -6,6 +6,7 @@ import type { PublicReading, ReadingView } from "@/lib/types";
 
 type ReadingLike = {
   _id: { toString(): string };
+  senderName?: string;
   deviceName: string;
   sensorName: string;
   temperature: number;
@@ -19,6 +20,7 @@ type ReadingLike = {
 export function toReadingView(doc: ReadingLike): ReadingView {
   return {
     id: doc._id.toString(),
+    senderName: doc.senderName ?? "",
     deviceName: doc.deviceName,
     sensorName: doc.sensorName,
     temperature: doc.temperature,
@@ -36,22 +38,49 @@ export async function listSheetReadings(sheetId: string, limit = 100) {
   return docs.map((doc) => toReadingView(doc));
 }
 
-export async function listPublicReadings(limit = 100): Promise<PublicReading[]> {
+type LatestPublicReading = ReadingLike & {
+  sheet?: Array<{ name?: string }>;
+};
+
+export async function listPublicReadings(limit = 200): Promise<PublicReading[]> {
   await connectDb();
-  const docs = await Reading.find().sort({ receivedAt: -1 }).limit(limit).populate("sheetId", "name");
-  return docs.map((doc) => {
-    const sheet = doc.sheetId as unknown as { name?: string } | null;
-    return {
-      ...toReadingView(doc),
-      sheetName: sheet?.name ?? "알 수 없는 시트",
-    };
-  });
+  const docs = await Reading.aggregate<LatestPublicReading>([
+    { $sort: { receivedAt: -1 } },
+    {
+      $group: {
+        _id: {
+          sheetId: "$sheetId",
+          senderName: "$senderName",
+          deviceName: "$deviceName",
+          locationName: "$locationName",
+        },
+        doc: { $first: "$$ROOT" },
+      },
+    },
+    { $replaceRoot: { newRoot: "$doc" } },
+    { $sort: { receivedAt: -1 } },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: "sheets",
+        localField: "sheetId",
+        foreignField: "_id",
+        as: "sheet",
+      },
+    },
+  ]);
+
+  return docs.map((doc) => ({
+    ...toReadingView(doc),
+    sheetName: doc.sheet?.[0]?.name ?? "알 수 없는 시트",
+  }));
 }
 
 export async function createReading(sheetId: string, input: IngestInput) {
   await connectDb();
   const doc = await Reading.create({
     sheetId,
+    senderName: input.senderName,
     deviceName: input.deviceName,
     sensorName: input.sensorName,
     temperature: input.temperature,

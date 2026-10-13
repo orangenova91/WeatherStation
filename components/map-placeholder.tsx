@@ -12,7 +12,7 @@ export function MapPlaceholder({ count, offline = false, loading = false }: MapP
   else if (typeof count === "number") status = `최근 수신 목록 ${count}건이 저장되어 있습니다.`;
 
   return (
-    <section className="relative min-h-[32rem] overflow-hidden rounded-2xl border border-line bg-[#e7f0ea]">
+    <section className="relative min-h-[32rem] flex-1 overflow-hidden rounded-2xl border border-line bg-[#e7f0ea]">
       <div
         className="absolute inset-0"
         style={{
