@@ -1,12 +1,10 @@
 import mongoose from "mongoose";
-import { connection } from "next/server";
 
 const globalForMongoose = globalThis as typeof globalThis & {
   mongooseConnect?: Promise<typeof mongoose>;
 };
 
 export async function connectDb() {
-  await connection();
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error("MONGODB_URI is not set");

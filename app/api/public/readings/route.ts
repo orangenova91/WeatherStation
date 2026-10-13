@@ -1,8 +1,11 @@
+import { connection } from "next/server";
 import { isDatabaseError } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { listPublicReadings } from "@/lib/readings";
 
 export async function GET() {
+  await connection();
+
   try {
     const readings = await listPublicReadings();
     return Response.json({ readings });

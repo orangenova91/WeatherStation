@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { MapPlaceholder } from "@/components/map-placeholder";
 import { PlatformFrame } from "@/components/platform-frame";
 import { listPublicReadings } from "@/lib/readings";
@@ -14,6 +15,7 @@ export default function HomePage() {
 }
 
 async function HomeMap() {
+  await connection();
   let count = 0;
   let offline = false;
   try {
