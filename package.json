@@ -1,5 +1,5 @@
 {
-  "name": "weather-station-scaffold",
+  "name": "weather-station",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.12",
+    "mongoose": "^9.11.2",
     "next": "16.4.0",
+    "nodemailer": "^10.1.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
