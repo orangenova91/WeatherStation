@@ -318,9 +318,9 @@ void drawHomeScreen() {
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(10, 15);
-  display.println("TEMP & HUMIDITY");
+  display.println("Weather Station");
   display.setCursor(25, 30);
-  display.println("MONITOR");
+  display.println("v1.0.0");
   display.setCursor(5, 50);
   display.println("Press button: Menu");
   drawWifiStatusIcon();

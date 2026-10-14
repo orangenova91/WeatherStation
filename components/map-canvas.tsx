@@ -164,12 +164,19 @@ function popupHtml(reading: PublicReading) {
   </div>`;
 }
 
-export default function MapCanvas({ readings }: { readings: PublicReading[] }) {
+type MapCanvasProps = {
+  readings: PublicReading[];
+  scrollZoom?: "always" | "click";
+};
+
+export default function MapCanvas({ readings, scrollZoom = "always" }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   const placeKeyRef = useRef("");
+  const scrollZoomRef = useRef(scrollZoom);
   const [pointer, setPointer] = useState<{ lat: number; lng: number } | null>(null);
+  const [wheelOn, setWheelOn] = useState(scrollZoom === "always");
   const markers = useMemo(
     () => readings.filter((reading) => Number.isFinite(reading.latitude) && Number.isFinite(reading.longitude)),
     [readings],
@@ -184,7 +191,7 @@ export default function MapCanvas({ readings }: { readings: PublicReading[] }) {
     if (!node || mapRef.current) return;
 
     ensurePopupStyle();
-    const map = L.map(node, { scrollWheelZoom: true }).setView(koreaCenter, 7);
+    const map = L.map(node, { scrollWheelZoom: scrollZoomRef.current === "always" }).setView(koreaCenter, 7);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
@@ -202,12 +209,29 @@ export default function MapCanvas({ readings }: { readings: PublicReading[] }) {
     const onMouseOut = () => {
       setPointer(null);
     };
+    const enableWheel = () => {
+      if (scrollZoomRef.current !== "click") return;
+      map.scrollWheelZoom.enable();
+      setWheelOn(true);
+    };
+    const disableWheel = () => {
+      if (scrollZoomRef.current !== "click") return;
+      map.scrollWheelZoom.disable();
+      setWheelOn(false);
+    };
+    const container = map.getContainer();
     map.on("mousemove", onMouseMove);
-    map.getContainer().addEventListener("mouseleave", onMouseOut);
+    container.addEventListener("mouseleave", onMouseOut);
+    if (scrollZoomRef.current === "click") {
+      container.addEventListener("pointerdown", enableWheel);
+      container.addEventListener("mouseleave", disableWheel);
+    }
 
     return () => {
       map.off("mousemove", onMouseMove);
-      map.getContainer().removeEventListener("mouseleave", onMouseOut);
+      container.removeEventListener("mouseleave", onMouseOut);
+      container.removeEventListener("pointerdown", enableWheel);
+      container.removeEventListener("mouseleave", disableWheel);
       observer.disconnect();
       map.remove();
       mapRef.current = null;
@@ -258,8 +282,8 @@ export default function MapCanvas({ readings }: { readings: PublicReading[] }) {
   }, [markers]);
 
   return (
-    <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-line">
-      <div ref={containerRef} className="h-full w-full" />
+    <section className="relative min-h-[28rem] flex-1 overflow-hidden rounded-2xl border border-line">
+      <div ref={containerRef} className="absolute inset-0" />
       <div className="pointer-events-none absolute top-4 right-4 z-[500] flex flex-col items-end gap-2">
         <div className="rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
           {markers.length === 0 ? "아직 수신된 좌표가 없습니다." : `관측 지점 ${markers.length}곳`}
@@ -282,6 +306,11 @@ export default function MapCanvas({ readings }: { readings: PublicReading[] }) {
           </p>
         </div>
       </div>
+      {scrollZoom === "click" && !wheelOn ? (
+        <div className="pointer-events-none absolute bottom-4 left-1/2 z-[500] -translate-x-1/2 rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
+          클릭 후에 휠로 확대 할 수 있습니다.
+        </div>
+      ) : null}
       {pointer ? (
         <div className="pointer-events-none absolute bottom-4 left-4 z-[500] rounded-full border border-line bg-card px-3 py-1 font-mono text-xs text-ink">
           Lat {formatCoord(pointer.lat)} · Lon {formatCoord(pointer.lng)}
