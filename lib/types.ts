@@ -23,11 +23,11 @@ export type SheetSummary = {
 
 export const EXAMPLE_READING = {
   deviceName: "esp32-01",
-  sensorName: "dht22",
+  sensorName: "dht11",
   temperature: 23.4,
   humidity: 55.1,
   locationName: "서울",
-  latitude: 37.5665,
-  longitude: 126.978,
+  latitude: 37.56651,
+  longitude: 126.97806,
   senderName: "kim",
 };

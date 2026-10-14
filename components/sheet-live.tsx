@@ -1,8 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { formatIngestToken } from "@/lib/tokens";
-import { EXAMPLE_READING, type ReadingView } from "@/lib/types";
+import { EXAMPLE_READING, type PublicReading, type ReadingView } from "@/lib/types";
+
+const MapCanvas = dynamic(() => import("@/components/map-canvas"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[28rem] flex-1 items-center justify-center rounded-2xl border border-line bg-[#e7f0ea] text-sm text-muted">
+      지도를 불러오는 중…
+    </div>
+  ),
+});
 
 type SheetLiveProps = {
   sheetId: string;
@@ -31,6 +41,10 @@ function formatMeasure(value: number) {
   }).format(value);
 }
 
+function stationKey(reading: ReadingView) {
+  return `${reading.senderName}|${reading.deviceName}|${reading.locationName}`;
+}
+
 export function SheetLive({ sheetId, name, ingestToken, initialReadings }: SheetLiveProps) {
   const [token, setToken] = useState(ingestToken);
   const [readings, setReadings] = useState(initialReadings);
@@ -40,6 +54,17 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
   const [copied, setCopied] = useState("");
   const displayToken = formatIngestToken(token);
   const example = useMemo(() => JSON.stringify(EXAMPLE_READING, null, 2), []);
+  const stations = useMemo(() => {
+    const seen = new Set<string>();
+    const latest: PublicReading[] = [];
+    for (const reading of readings) {
+      const key = stationKey(reading);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      latest.push({ ...reading, sheetName: name });
+    }
+    return latest;
+  }, [readings, name]);
 
   useEffect(() => {
     const source = new EventSource(`/api/sheets/${sheetId}/stream`);
@@ -112,40 +137,45 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
         </button>
       </div>
 
-      <section className="rounded-2xl border border-line bg-card p-5">
-        <h2 className="text-base font-medium">송신 토큰</h2>
-        <p className="mt-1 text-sm leading-6 text-muted">
-          ESP32 설정 화면의 Token 칸에 이 토큰만 넣으면 아래 표에 쌓입니다.
-        </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <code className="min-w-0 flex-1 overflow-x-auto rounded-md border border-line bg-paper px-3 py-2 font-mono text-xs">
-            {displayToken}
-          </code>
-          <button
-            type="button"
-            onClick={() => copy("token", displayToken)}
-            className="rounded-md bg-sidebar px-3 py-2 text-sm text-white"
-          >
-            {copied === "token" ? "복사됨" : "토큰 복사"}
-          </button>
+      <div className="grid items-stretch gap-5 lg:grid-cols-2">
+        <section className="rounded-2xl border border-line bg-card p-5">
+          <h2 className="text-base font-medium">송신 토큰</h2>
+          <p className="mt-1 text-sm leading-6 text-muted">
+            ESP32 설정 화면의 Token 칸에 이 토큰만 넣으면 아래 표에 쌓입니다.
+          </p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <code className="min-w-0 flex-1 overflow-x-auto rounded-md border border-line bg-paper px-3 py-2 font-mono text-xs">
+              {displayToken}
+            </code>
+            <button
+              type="button"
+              onClick={() => copy("token", displayToken)}
+              className="rounded-md bg-sidebar px-3 py-2 text-sm text-white"
+            >
+              {copied === "token" ? "복사됨" : "토큰 복사"}
+            </button>
+          </div>
+          <pre className="mt-4 overflow-x-auto rounded-md border border-line bg-paper p-3 font-mono text-xs leading-5">
+            {example}
+          </pre>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => copy("json", example)}
+              className="rounded-md border border-line px-3 py-2 text-sm"
+            >
+              {copied === "json" ? "복사됨" : "JSON 예시 복사"}
+            </button>
+            <button type="button" onClick={rotateToken} className="rounded-md border border-line px-3 py-2 text-sm">
+              토큰 재발급
+            </button>
+          </div>
+          {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
+        </section>
+        <div className="flex h-full min-h-[28rem] flex-col">
+          <MapCanvas readings={stations} scrollZoom="click" />
         </div>
-        <pre className="mt-4 overflow-x-auto rounded-md border border-line bg-paper p-3 font-mono text-xs leading-5">
-          {example}
-        </pre>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => copy("json", example)}
-            className="rounded-md border border-line px-3 py-2 text-sm"
-          >
-            {copied === "json" ? "복사됨" : "JSON 예시 복사"}
-          </button>
-          <button type="button" onClick={rotateToken} className="rounded-md border border-line px-3 py-2 text-sm">
-            토큰 재발급
-          </button>
-        </div>
-        {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
-      </section>
+      </div>
 
       <section className="overflow-hidden rounded-2xl border border-line bg-card">
         <div className="border-b border-line px-5 py-3">
