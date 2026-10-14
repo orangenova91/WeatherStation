@@ -3,18 +3,20 @@ import { parseIngestBody } from "@/lib/ingest";
 import { jsonError, readJson } from "@/lib/http";
 import { createReading } from "@/lib/readings";
 import { publishReading } from "@/lib/realtime";
+import { normalizeIngestToken } from "@/lib/tokens";
 import { Sheet } from "@/models/Sheet";
 
 export async function POST(request: Request, ctx: RouteContext<"/api/ingest/[token]">) {
   const { token } = await ctx.params;
-  if (!token) return jsonError("송신 주소를 찾을 수 없습니다.", 404);
+  const ingestToken = normalizeIngestToken(token);
+  if (!ingestToken) return jsonError("송신 주소를 찾을 수 없습니다.", 404);
 
   const parsed = parseIngestBody(await readJson(request));
   if (!parsed.ok) return jsonError(parsed.error, 400);
 
   try {
     await connectDb();
-    const sheet = await Sheet.findOne({ ingestToken: token });
+    const sheet = await Sheet.findOne({ ingestToken });
     if (!sheet) return jsonError("송신 주소를 찾을 수 없습니다.", 404);
 
     const reading = await createReading(sheet._id.toString(), parsed.value);

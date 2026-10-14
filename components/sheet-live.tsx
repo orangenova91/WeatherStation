@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { formatIngestToken } from "@/lib/tokens";
 import { EXAMPLE_READING, type ReadingView } from "@/lib/types";
 
 type SheetLiveProps = {
@@ -37,13 +38,7 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
   const [status, setStatus] = useState<LiveStatus>("connecting");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
-  const origin = useSyncExternalStore(
-    () => () => {},
-    () => window.location.origin,
-    () => "",
-  );
-
-  const ingestUrl = `${origin}/api/ingest/${token}`;
+  const displayToken = formatIngestToken(token);
   const example = useMemo(() => JSON.stringify(EXAMPLE_READING, null, 2), []);
 
   useEffect(() => {
@@ -74,12 +69,12 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
   }
 
   async function rotateToken() {
-    if (!window.confirm("송신 주소를 재발급하면 기존 주소는 바로 막힙니다. 계속할까요?")) return;
+    if (!window.confirm("토큰을 재발급하면 기존 토큰은 바로 막힙니다. 계속할까요?")) return;
     setError("");
     const response = await fetch(`/api/sheets/${sheetId}/rotate-token`, { method: "POST" });
     const data = (await response.json()) as { error?: string; ingestToken?: string };
     if (!response.ok || !data.ingestToken) {
-      setError(data.error ?? "송신 주소를 재발급하지 못했습니다.");
+      setError(data.error ?? "토큰을 재발급하지 못했습니다.");
       return;
     }
     setToken(data.ingestToken);
@@ -118,20 +113,20 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
       </div>
 
       <section className="rounded-2xl border border-line bg-card p-5">
-        <h2 className="text-base font-medium">송신 주소</h2>
+        <h2 className="text-base font-medium">송신 토큰</h2>
         <p className="mt-1 text-sm leading-6 text-muted">
-          ESP32 등에서 이 주소로 JSON을 POST 하면 아래 표에 바로 쌓입니다. 주소의 토큰이 이 시트의 열쇠입니다.
+          ESP32 설정 화면의 Token 칸에 이 토큰만 넣으면 아래 표에 쌓입니다.
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <code className="min-w-0 flex-1 overflow-x-auto rounded-md border border-line bg-paper px-3 py-2 font-mono text-xs">
-            {origin ? ingestUrl : `/api/ingest/${token}`}
+            {displayToken}
           </code>
           <button
             type="button"
-            onClick={() => copy("url", origin ? ingestUrl : `/api/ingest/${token}`)}
+            onClick={() => copy("token", displayToken)}
             className="rounded-md bg-sidebar px-3 py-2 text-sm text-white"
           >
-            {copied === "url" ? "복사됨" : "주소 복사"}
+            {copied === "token" ? "복사됨" : "토큰 복사"}
           </button>
         </div>
         <pre className="mt-4 overflow-x-auto rounded-md border border-line bg-paper p-3 font-mono text-xs leading-5">
@@ -146,7 +141,7 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
             {copied === "json" ? "복사됨" : "JSON 예시 복사"}
           </button>
           <button type="button" onClick={rotateToken} className="rounded-md border border-line px-3 py-2 text-sm">
-            송신 주소 재발급
+            토큰 재발급
           </button>
         </div>
         {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
