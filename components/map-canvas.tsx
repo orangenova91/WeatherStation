@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { PublicReading } from "@/lib/types";
+import { formatReceivedAt, viewerTimeZone } from "@/lib/time";
 
 const freshWindowMs = 60 * 60 * 1000;
 
@@ -115,15 +116,6 @@ function escapeHtml(value: string) {
     .replaceAll('"', "&quot;");
 }
 
-function formatTime(iso: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(iso));
-}
 
 function formatMeasure(value: number) {
   return new Intl.NumberFormat("ko-KR", {
@@ -158,7 +150,7 @@ function popupHtml(reading: PublicReading) {
       ${popupRow("Lon", formatCoord(reading.longitude))}
       ${popupRow("Temperature", `${formatMeasure(reading.temperature)}°C`)}
       ${popupRow("Humidity", `${formatMeasure(reading.humidity)}%`)}
-      ${popupRow("Received", escapeHtml(formatTime(reading.receivedAt)))}
+      ${popupRow("Received", escapeHtml(formatReceivedAt(reading.receivedAt, true, viewerTimeZone())))}
       ${popupRow("Sender Name", escapeHtml(reading.senderName))}
     </div>
   </div>`;

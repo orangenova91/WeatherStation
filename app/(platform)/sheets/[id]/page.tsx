@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { SheetLive } from "@/components/sheet-live";
 import { getSession } from "@/lib/auth";
 import { connectDb } from "@/lib/db";
-import { listSheetReadings } from "@/lib/readings";
+import { countSheetReadings, listSheetReadings } from "@/lib/readings";
 import { isObjectId } from "@/lib/tokens";
 import type { ReadingView } from "@/lib/types";
 import { Sheet } from "@/models/Sheet";
@@ -25,16 +25,18 @@ async function SheetDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!isObjectId(id)) notFound();
 
-  let sheetView: { name: string; ingestToken: string; readings: ReadingView[] } | null = null;
+  let sheetView: { name: string; ingestToken: string; readings: ReadingView[]; total: number } | null = null;
   let offline = false;
   try {
     await connectDb();
     const sheet = await Sheet.findOne({ _id: id, ownerId: session.userId });
     if (sheet) {
+      const [readings, total] = await Promise.all([listSheetReadings(id), countSheetReadings(id)]);
       sheetView = {
         name: sheet.name,
         ingestToken: sheet.ingestToken,
-        readings: await listSheetReadings(id),
+        readings,
+        total,
       };
     }
   } catch (error) {
@@ -53,6 +55,7 @@ async function SheetDetail({ params }: { params: Promise<{ id: string }> }) {
       name={sheetView.name}
       ingestToken={sheetView.ingestToken}
       initialReadings={sheetView.readings}
+      initialTotal={sheetView.total}
     />
   );
 }

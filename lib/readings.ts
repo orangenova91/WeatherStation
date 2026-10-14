@@ -38,6 +38,17 @@ export async function listSheetReadings(sheetId: string, limit = 100) {
   return docs.map((doc) => toReadingView(doc));
 }
 
+export async function countSheetReadings(sheetId: string) {
+  await connectDb();
+  return Reading.countDocuments({ sheetId });
+}
+
+export async function listAllSheetReadings(sheetId: string) {
+  await connectDb();
+  const docs = await Reading.find({ sheetId }).sort({ receivedAt: -1 }).lean();
+  return docs.map((doc) => toReadingView(doc));
+}
+
 type LatestPublicReading = ReadingLike & {
   sheet?: Array<{ name?: string }>;
 };
