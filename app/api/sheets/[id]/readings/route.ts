@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { connectDb, isDatabaseError } from "@/lib/db";
 import { jsonError } from "@/lib/http";
-import { listSheetReadings } from "@/lib/readings";
+import { countSheetReadings, listSheetReadings } from "@/lib/readings";
 import { isObjectId } from "@/lib/tokens";
 import { Sheet } from "@/models/Sheet";
 
@@ -16,8 +16,8 @@ export async function GET(_request: Request, ctx: RouteContext<"/api/sheets/[id]
     await connectDb();
     const sheet = await Sheet.findOne({ _id: id, ownerId: session.userId });
     if (!sheet) return jsonError("시트를 찾을 수 없습니다.", 404);
-    const readings = await listSheetReadings(id);
-    return Response.json({ readings });
+    const [readings, total] = await Promise.all([listSheetReadings(id), countSheetReadings(id)]);
+    return Response.json({ readings, total });
   } catch (error) {
     console.error(error);
     if (isDatabaseError(error)) {

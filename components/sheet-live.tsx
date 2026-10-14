@@ -1,7 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ReadingChart } from "@/components/reading-chart";
+import { useViewerTimeZone } from "@/components/use-viewer-time-zone";
+import { formatReceivedAt } from "@/lib/time";
 import { formatIngestToken } from "@/lib/tokens";
 import { EXAMPLE_READING, type PublicReading, type ReadingView } from "@/lib/types";
 
@@ -19,20 +22,11 @@ type SheetLiveProps = {
   name: string;
   ingestToken: string;
   initialReadings: ReadingView[];
+  initialTotal: number;
 };
 
 type LiveStatus = "connecting" | "live" | "reconnecting";
-
-function formatTime(iso: string) {
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(new Date(iso));
-}
+type ReadingViewMode = "table" | "chart";
 
 function formatMeasure(value: number) {
   return new Intl.NumberFormat("ko-KR", {
@@ -45,13 +39,22 @@ function stationKey(reading: ReadingView) {
   return `${reading.senderName}|${reading.deviceName}|${reading.locationName}`;
 }
 
-export function SheetLive({ sheetId, name, ingestToken, initialReadings }: SheetLiveProps) {
+function formatCount(value: number) {
+  return new Intl.NumberFormat("ko-KR").format(value);
+}
+
+export function SheetLive({ sheetId, name, ingestToken, initialReadings, initialTotal }: SheetLiveProps) {
   const [token, setToken] = useState(ingestToken);
   const [readings, setReadings] = useState(initialReadings);
+  const [total, setTotal] = useState(initialTotal);
+  const seenIds = useRef(new Set(initialReadings.map((reading) => reading.id)));
   const [freshId, setFreshId] = useState<string | null>(null);
   const [status, setStatus] = useState<LiveStatus>("connecting");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
+  const [view, setView] = useState<ReadingViewMode>("table");
+  const [stationFilter, setStationFilter] = useState("all");
+  const timeZone = useViewerTimeZone();
   const displayToken = formatIngestToken(token);
   const example = useMemo(() => JSON.stringify(EXAMPLE_READING, null, 2), []);
   const stations = useMemo(() => {
@@ -65,6 +68,16 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
     }
     return latest;
   }, [readings, name]);
+  const chartReadings = useMemo(() => {
+    if (stationFilter === "all") return readings;
+    return readings.filter((reading) => stationKey(reading) === stationFilter);
+  }, [readings, stationFilter]);
+
+  useEffect(() => {
+    if (stationFilter === "all") return;
+    if (stations.some((station) => stationKey(station) === stationFilter)) return;
+    setStationFilter("all");
+  }, [stationFilter, stations]);
 
   useEffect(() => {
     const source = new EventSource(`/api/sheets/${sheetId}/stream`);
@@ -72,6 +85,10 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
     source.onmessage = (event) => {
       const reading = JSON.parse(event.data) as ReadingView;
       setFreshId(reading.id);
+      if (!seenIds.current.has(reading.id)) {
+        seenIds.current.add(reading.id);
+        setTotal((count) => count + 1);
+      }
       setReadings((current) => {
         if (current.some((item) => item.id === reading.id)) return current;
         return [reading, ...current].slice(0, 100);
@@ -107,12 +124,14 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
 
   async function reload() {
     const response = await fetch(`/api/sheets/${sheetId}/readings`);
-    const data = (await response.json()) as { error?: string; readings?: ReadingView[] };
-    if (!response.ok || !data.readings) {
+    const data = (await response.json()) as { error?: string; readings?: ReadingView[]; total?: number };
+    if (!response.ok || !data.readings || typeof data.total !== "number") {
       setError(data.error ?? "수신 기록을 불러오지 못했습니다.");
       return;
     }
+    for (const reading of data.readings) seenIds.current.add(reading.id);
     setReadings(data.readings);
+    setTotal(data.total);
   }
 
   const statusLabel =
@@ -178,11 +197,60 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-line bg-card">
-        <div className="border-b border-line px-5 py-3">
-          <h2 className="text-base font-medium">수신 기록</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
+          <div className="flex items-center gap-3">
+            <h2 className="text-base font-medium">수신 기록</h2>
+            <p className="text-sm text-muted">total: {formatCount(total)}건</p>
+            <a
+              href={`/api/sheets/${sheetId}/export?timeZone=${encodeURIComponent(timeZone)}`}
+              className="rounded-md border border-line px-3 py-1 text-sm"
+            >
+              CSV 받기
+            </a>
+            <p className="text-sm text-muted">아래 표에는 최신 100건만 표시됩니다.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {view === "chart" && stations.length > 1 ? (
+              <label className="flex items-center gap-2 text-sm text-muted">
+                관측소
+                <select
+                  value={stationFilter}
+                  onChange={(event) => setStationFilter(event.target.value)}
+                  className="rounded-md border border-line bg-white px-2 py-1.5 text-sm text-ink outline-none"
+                >
+                  <option value="all">전체</option>
+                  {stations.map((station) => (
+                    <option key={stationKey(station)} value={stationKey(station)}>
+                      {station.locationName} · {station.deviceName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <div role="group" aria-label="수신 기록 보기" className="flex rounded-md border border-line p-0.5 text-sm">
+              <button
+                type="button"
+                aria-pressed={view === "table"}
+                onClick={() => setView("table")}
+                className={`rounded px-3 py-1 ${view === "table" ? "bg-sidebar text-white" : "text-muted"}`}
+              >
+                표
+              </button>
+              <button
+                type="button"
+                aria-pressed={view === "chart"}
+                onClick={() => setView("chart")}
+                className={`rounded px-3 py-1 ${view === "chart" ? "bg-sidebar text-white" : "text-muted"}`}
+              >
+                그래프
+              </button>
+            </div>
+          </div>
         </div>
         {readings.length === 0 ? (
           <p className="px-5 py-8 text-sm text-muted">아직 수신된 값이 없습니다.</p>
+        ) : view === "chart" ? (
+          <ReadingChart readings={chartReadings} timeZone={timeZone} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] text-left text-sm">
@@ -205,7 +273,7 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings }: Sheet
                     key={reading.id}
                     className={`border-t border-line ${reading.id === freshId ? "bg-accent/10" : ""}`}
                   >
-                    <td className="px-4 py-3 font-mono text-xs">{formatTime(reading.receivedAt)}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{formatReceivedAt(reading.receivedAt, true, timeZone)}</td>
                     <td className="px-4 py-3">{reading.deviceName}</td>
                     <td className="px-4 py-3">{reading.sensorName}</td>
                     <td className="px-4 py-3 font-mono">{formatMeasure(reading.temperature)} °C</td>
