@@ -35,11 +35,12 @@ const char* WIFI_AP_NAME = "ESP32-Setup";
 const unsigned long WIFI_PORTAL_TIMEOUT = 180;
 
 // ===== Weather Station 플랫폼 전송 설정 =====
-// 시트 화면의 송신 주소를 캡티브 포털에서 입력한다.
-// 예: http://192.168.0.10:3000/api/ingest/토큰
+// 시트 화면의 토큰만 캡티브 포털에서 입력한다.
+// 전송 주소는 아래 고정 주소 뒤에 토큰을 붙여 만든다.
+const char* INGEST_BASE_URL = "https://weatherstation.schub.kr/api/ingest/";
 // 구글 시트용으로 저장해 둔 값은 쓰지 않도록 저장 공간을 분리했다.
 Preferences prefs;
-String ingestUrl = "";
+String ingestToken = "";
 String senderName = "";
 String deviceName = "";
 String sensorName = "";
@@ -47,14 +48,14 @@ String locationName = "";
 String deviceLat = "";
 String deviceLng = "";
 
-#define INGEST_URL_MAX_LEN 220
+#define INGEST_TOKEN_MAX_LEN 20
 #define SENDER_NAME_MAX_LEN 40
 #define DEVICE_NAME_MAX_LEN 40
 #define SENSOR_NAME_MAX_LEN 40
 #define LOCATION_NAME_MAX_LEN 40
 #define LAT_LNG_MAX_LEN 24
 
-char ingestUrlBuffer[INGEST_URL_MAX_LEN] = "";
+char ingestTokenBuffer[INGEST_TOKEN_MAX_LEN] = "";
 char senderNameBuffer[SENDER_NAME_MAX_LEN] = "";
 char deviceNameBuffer[DEVICE_NAME_MAX_LEN] = "";
 char sensorNameBuffer[SENSOR_NAME_MAX_LEN] = "DHT11";
@@ -62,7 +63,7 @@ char locationNameBuffer[LOCATION_NAME_MAX_LEN] = "";
 char latBuffer[LAT_LNG_MAX_LEN] = "";
 char lngBuffer[LAT_LNG_MAX_LEN] = "";
 
-WiFiManagerParameter customIngestUrlParam("ingesturl", "Ingest URL", ingestUrlBuffer, INGEST_URL_MAX_LEN);
+WiFiManagerParameter customIngestTokenParam("token", "Token", ingestTokenBuffer, INGEST_TOKEN_MAX_LEN);
 WiFiManagerParameter customDeviceNameParam("devicename", "Device Name", deviceNameBuffer, DEVICE_NAME_MAX_LEN);
 WiFiManagerParameter customSensorNameParam("sensorname", "Sensor Name", sensorNameBuffer, SENSOR_NAME_MAX_LEN);
 WiFiManagerParameter customLocationNameParam("locname", "Location Name", locationNameBuffer, LOCATION_NAME_MAX_LEN);
@@ -112,7 +113,7 @@ void setup() {
   pinMode(JOY_SW, INPUT_PULLUP);
 
   prefs.begin("wscfg", true);
-  ingestUrl = prefs.getString("url", "");
+  ingestToken = prefs.getString("token", "");
   senderName = prefs.getString("sender", "");
   deviceName = prefs.getString("devname", "");
   sensorName = prefs.getString("sensor", "DHT11");
@@ -122,7 +123,7 @@ void setup() {
   prefs.end();
   if (sensorName.length() == 0) sensorName = "DHT11";
 
-  wm.addParameter(&customIngestUrlParam);
+  wm.addParameter(&customIngestTokenParam);
   wm.addParameter(&customDeviceNameParam);
   wm.addParameter(&customSensorNameParam);
   wm.addParameter(&customLocationNameParam);
@@ -434,7 +435,7 @@ void startWiFiSetup() {
   drawWifiStatusIcon();
   display.display();
 
-  copyToParam(ingestUrl, ingestUrlBuffer, INGEST_URL_MAX_LEN, customIngestUrlParam);
+  copyToParam(ingestToken, ingestTokenBuffer, INGEST_TOKEN_MAX_LEN, customIngestTokenParam);
   copyToParam(senderName, senderNameBuffer, SENDER_NAME_MAX_LEN, customSenderNameParam);
   copyToParam(deviceName, deviceNameBuffer, DEVICE_NAME_MAX_LEN, customDeviceNameParam);
   copyToParam(sensorName, sensorNameBuffer, SENSOR_NAME_MAX_LEN, customSensorNameParam);
@@ -446,9 +447,9 @@ void startWiFiSetup() {
   bool connected = wm.autoConnect(WIFI_AP_NAME);
 
   if (connected) {
-    String enteredUrl = customIngestUrlParam.getValue();
-    enteredUrl.trim();
-    if (enteredUrl.length() > 0) ingestUrl = enteredUrl;
+    String enteredToken = customIngestTokenParam.getValue();
+    enteredToken.trim();
+    if (enteredToken.length() > 0) ingestToken = enteredToken;
 
     String enteredSender = customSenderNameParam.getValue();
     enteredSender.trim();
@@ -475,7 +476,7 @@ void startWiFiSetup() {
     if (enteredLng.length() > 0) deviceLng = enteredLng;
 
     prefs.begin("wscfg", false);
-    prefs.putString("url", ingestUrl);
+    prefs.putString("token", ingestToken);
     prefs.putString("sender", senderName);
     prefs.putString("devname", deviceName);
     prefs.putString("sensor", sensorName);
@@ -484,8 +485,8 @@ void startWiFiSetup() {
     prefs.putString("lng", deviceLng);
     prefs.end();
 
-    Serial.print("송신 주소 저장됨: ");
-    Serial.println(ingestUrl);
+    Serial.print("토큰 저장됨: ");
+    Serial.println(ingestToken);
     Serial.print("발신자명/기기명/센서명/위치명: ");
     Serial.print(senderName);
     Serial.print(" / ");
@@ -577,12 +578,11 @@ bool isDecimal(const String& value) {
   return end != value.c_str() && *end == '\0';
 }
 
-// 시트 송신 주소로 JSON을 POST 한다.
-// 같은 WiFi의 개발 서버는 http, 배포 주소는 https를 그대로 넣으면 된다.
+// 고정 주소 뒤에 토큰을 붙여 JSON을 POST 한다.
 void sendToPlatform(float temp, float humi) {
   if (WiFi.status() != WL_CONNECTED) return;
-  if (ingestUrl.length() == 0 || senderName.length() == 0 || deviceName.length() == 0 || sensorName.length() == 0 || locationName.length() == 0) {
-    Serial.println("플랫폼 전송 생략: 송신 주소, 발신자명, 기기명, 센서명, 위치명을 WiFi 설정에서 입력하세요.");
+  if (ingestToken.length() == 0 || senderName.length() == 0 || deviceName.length() == 0 || sensorName.length() == 0 || locationName.length() == 0) {
+    Serial.println("플랫폼 전송 생략: 토큰, 발신자명, 기기명, 센서명, 위치명을 WiFi 설정에서 입력하세요.");
     return;
   }
   if (!isDecimal(deviceLat) || !isDecimal(deviceLng)) {
@@ -590,18 +590,11 @@ void sendToPlatform(float temp, float humi) {
     return;
   }
 
-  bool tls = ingestUrl.startsWith("https://");
-  WiFiClient plainClient;
+  String url = String(INGEST_BASE_URL) + ingestToken;
   WiFiClientSecure secureClient;
+  secureClient.setInsecure();
   HTTPClient http;
-  bool started = false;
-
-  if (tls) {
-    secureClient.setInsecure();
-    started = http.begin(secureClient, ingestUrl);
-  } else {
-    started = http.begin(plainClient, ingestUrl);
-  }
+  bool started = http.begin(secureClient, url);
 
   if (!started) {
     Serial.println("플랫폼 전송: HTTP 연결 시작 실패");

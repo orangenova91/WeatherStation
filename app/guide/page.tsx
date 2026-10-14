@@ -8,7 +8,7 @@ export const metadata = { title: "기상대 설치 방법" };
 
 const steps = [
   "weather_station.ino를 ESP32에 올립니다. 구글 시트용 스케치는 이 플랫폼으로 보내지 못합니다.",
-  "로그인 후 Data 서버 만들기에서 시트를 만들고 송신 주소를 복사합니다.",
+  "로그인 후 Data 서버 만들기에서 시트를 만들고 토큰을 복사합니다.",
   "휴대폰 WIFI를 ESP32-Setup에 연결하고 브라우저에서 192.168.4.1을 엽니다.",
   "아래 순서대로 모두 입력합니다. 하나라도 비어 있으면 전송되지 않습니다.",
   "측정을 시작합니다. 기본 간격은 1분이고, 1분에서 1시간 사이로 바꿀 수 있습니다.",
@@ -16,7 +16,7 @@ const steps = [
 ];
 
 const fields = [
-  "Ingest URL. 복사한 송신 주소",
+  "Token. 복사한 토큰",
   "Device Name. 기기 이름",
   "Sensor Name. 센서 이름",
   "Location Name. 위치 이름",
@@ -45,7 +45,7 @@ function StepItem({ index, step }: { index: number; step: string }) {
             <Link href="/sheets" className="font-medium text-ink underline">
               Data 서버 만들기
             </Link>
-            에서 시트를 만들고 송신 주소를 복사합니다.
+            에서 시트를 만들고 토큰을 복사합니다.
           </>
         ) : (
           step
@@ -67,7 +67,7 @@ function FieldOrder() {
         ))}
       </ol>
       <p className="mt-4 text-sm leading-6 text-muted">
-        정확한 송신 주소(Ingest URL)를 입력해야 합니다. 기기명은 사용하는 마이크로 컨트롤러(ESP32 등...), 센서명은 측정하는 센서 이름, 위치명은 측정 위치 이름입니다.
+        시트에서 복사한 토큰을 Token 칸에 입력해야 합니다. 기기명은 사용하는 마이크로 컨트롤러(ESP32 등...), 센서명은 측정하는 센서 이름, 위치명은 측정 위치 이름입니다.
         좌표는 공유 지도에서 정확한 위도와 경도를 확인해서 입력해주세요. 발신자명은 사용자 이름이나 닉네임을 입력합니다.
       </p>
     </section>

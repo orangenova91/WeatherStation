@@ -22,7 +22,7 @@ export function ShellFallback({ children }: { children?: ReactNode }) {
           {children ?? <p className="text-sm text-muted">불러오는 중…</p>}
         </main>
         <footer className="flex h-10 items-center border-t border-line px-6 text-xs text-muted">
-          관측값은 각 시트의 송신 주소로 저장됩니다.
+          관측값은 각 시트의 송신 토큰으로 저장됩니다.
         </footer>
       </div>
     </div>
