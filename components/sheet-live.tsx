@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ReadingChart } from "@/components/reading-chart";
+import { SheetDeleteButton } from "@/components/sheet-delete-button";
+import { SheetShareToggle } from "@/components/sheet-share-toggle";
 import { useViewerTimeZone } from "@/components/use-viewer-time-zone";
 import { formatReceivedAt } from "@/lib/time";
 import { formatIngestToken } from "@/lib/tokens";
@@ -21,6 +23,7 @@ type SheetLiveProps = {
   sheetId: string;
   name: string;
   ingestToken: string;
+  sharedOnMap: boolean;
   initialReadings: ReadingView[];
   initialTotal: number;
 };
@@ -43,7 +46,14 @@ function formatCount(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
 }
 
-export function SheetLive({ sheetId, name, ingestToken, initialReadings, initialTotal }: SheetLiveProps) {
+export function SheetLive({
+  sheetId,
+  name,
+  ingestToken,
+  sharedOnMap,
+  initialReadings,
+  initialTotal,
+}: SheetLiveProps) {
   const [token, setToken] = useState(ingestToken);
   const [readings, setReadings] = useState(initialReadings);
   const [total, setTotal] = useState(initialTotal);
@@ -147,13 +157,17 @@ export function SheetLive({ sheetId, name, ingestToken, initialReadings, initial
             {statusLabel}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={reload}
-          className="rounded-md border border-line bg-card px-3 py-2 text-sm"
-        >
-          기록 다시 불러오기
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <SheetShareToggle sheetId={sheetId} initialSharedOnMap={sharedOnMap} variant="detail" />
+          <button
+            type="button"
+            onClick={reload}
+            className="rounded-md border border-line bg-card px-3 py-2 text-sm"
+          >
+            기록 다시 불러오기
+          </button>
+          <SheetDeleteButton sheetId={sheetId} sheetName={name} variant="detail" />
+        </div>
       </div>
 
       <div className="grid items-stretch gap-5 lg:grid-cols-2">

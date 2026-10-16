@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { SheetCreateForm } from "@/components/sheet-create-form";
+import { SheetDeleteButton } from "@/components/sheet-delete-button";
+import { SheetShareToggle } from "@/components/sheet-share-toggle";
 import { getSession } from "@/lib/auth";
 import { connectDb } from "@/lib/db";
 import { attachSheetReadingSummaries } from "@/lib/readings";
@@ -59,6 +61,7 @@ async function SheetsContent() {
       id: sheet._id.toString(),
       name: sheet.name,
       createdAt: sheet.createdAt.toISOString(),
+      sharedOnMap: sheet.sharedOnMap !== false,
     }));
     sheets = await attachSheetReadingSummaries(base);
   } catch (error) {
@@ -70,7 +73,9 @@ async function SheetsContent() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
       <div>
         <h1 className="text-2xl font-medium">Data 서버 만들기</h1>
-        <p className="mt-1 text-sm text-muted">기기에서 보낼 데이터베이스 시트를 만듭니다.</p>
+        <p className="mt-1 text-sm text-muted">
+          기기에서 보낼 데이터베이스 시트를 만듭니다. 공유 지도 표시는 시트마다 끌 수 있습니다.
+        </p>
       </div>
       <SheetCreateForm />
       {offline ? (
@@ -83,34 +88,38 @@ async function SheetsContent() {
         <ul className="overflow-hidden rounded-2xl border border-line bg-card">
           {sheets.map((sheet) => (
             <li key={sheet.id} className="border-b border-line last:border-b-0">
-              <Link
-                href={`/sheets/${sheet.id}`}
-                className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-paper"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{sheet.name}</span>
-                    {sheet.totalReadings > 0 && sheet.isFresh ? (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-ink"
-                        style={{ background: "rgba(216,154,43,.22)", boxShadow: "inset 0 0 0 1px rgba(216,154,43,.55)" }}
-                      >
+              <div className="flex items-center gap-3 px-5 py-4 hover:bg-paper">
+                <Link href={`/sheets/${sheet.id}`} className="flex min-w-0 flex-1 items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{sheet.name}</span>
+                      {sheet.totalReadings > 0 && sheet.isFresh ? (
                         <span
-                          className="inline-block h-1.5 w-1.5 rounded-full"
-                          style={{ background: "#d89a2b" }}
-                        />
-                        수신 중
-                      </span>
-                    ) : null}
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-ink"
+                          style={{
+                            background: "rgba(216,154,43,.22)",
+                            boxShadow: "inset 0 0 0 1px rgba(216,154,43,.55)",
+                          }}
+                        >
+                          <span
+                            className="inline-block h-1.5 w-1.5 rounded-full"
+                            style={{ background: "#d89a2b" }}
+                          />
+                          수신 중
+                        </span>
+                      ) : null}
+                    </div>
+                    <SheetListMeta sheet={sheet} />
                   </div>
-                  <SheetListMeta sheet={sheet} />
-                </div>
-                <span className="shrink-0 text-xs text-muted">
-                  {new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(
-                    new Date(sheet.createdAt),
-                  )}
-                </span>
-              </Link>
+                  <span className="shrink-0 text-xs text-muted">
+                    {new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(
+                      new Date(sheet.createdAt),
+                    )}
+                  </span>
+                </Link>
+                <SheetShareToggle sheetId={sheet.id} initialSharedOnMap={sheet.sharedOnMap} variant="list" />
+                <SheetDeleteButton sheetId={sheet.id} sheetName={sheet.name} variant="list" />
+              </div>
             </li>
           ))}
         </ul>

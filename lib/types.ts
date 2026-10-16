@@ -26,6 +26,7 @@ export type SheetSummary = {
   id: string;
   name: string;
   createdAt: string;
+  sharedOnMap: boolean;
   totalReadings: number;
   locationNames: string[];
   lastReceivedAt: string | null;

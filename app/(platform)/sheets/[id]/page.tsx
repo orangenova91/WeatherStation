@@ -25,7 +25,13 @@ async function SheetDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!isObjectId(id)) notFound();
 
-  let sheetView: { name: string; ingestToken: string; readings: ReadingView[]; total: number } | null = null;
+  let sheetView: {
+    name: string;
+    ingestToken: string;
+    sharedOnMap: boolean;
+    readings: ReadingView[];
+    total: number;
+  } | null = null;
   let offline = false;
   try {
     await connectDb();
@@ -35,6 +41,7 @@ async function SheetDetail({ params }: { params: Promise<{ id: string }> }) {
       sheetView = {
         name: sheet.name,
         ingestToken: sheet.ingestToken,
+        sharedOnMap: sheet.sharedOnMap !== false,
         readings,
         total,
       };
@@ -54,6 +61,7 @@ async function SheetDetail({ params }: { params: Promise<{ id: string }> }) {
       sheetId={id}
       name={sheetView.name}
       ingestToken={sheetView.ingestToken}
+      sharedOnMap={sheetView.sharedOnMap}
       initialReadings={sheetView.readings}
       initialTotal={sheetView.total}
     />

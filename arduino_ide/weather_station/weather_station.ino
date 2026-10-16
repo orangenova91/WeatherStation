@@ -362,7 +362,7 @@ void drawHomeScreen() {
   display.setCursor(10, 15);
   display.println("Weather Station");
   display.setCursor(25, 30);
-  display.println("v1.0.1");
+  display.println("v1.0.3");
   display.setCursor(5, 50);
   display.println("Press button: Menu");
   drawWifiStatusIcon();
