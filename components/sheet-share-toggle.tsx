@@ -25,12 +25,6 @@ export function SheetShareToggle({
     if (pending) return;
 
     const next = !shared;
-    if (
-      !next &&
-      !window.confirm("공유 지도에서 이 시트 관측을 숨깁니다. 수신 기록은 그대로 남습니다. 계속할까요?")
-    ) {
-      return;
-    }
 
     setPending(true);
     setError("");
@@ -59,7 +53,7 @@ export function SheetShareToggle({
     }
   }
 
-  const label = shared ? "지도에 표시" : "지도에서 숨김";
+  const stateLabel = shared ? "지도에 표시 중" : "지도에서 숨김";
 
   return (
     <div
@@ -70,19 +64,16 @@ export function SheetShareToggle({
         type="button"
         role="switch"
         aria-checked={shared}
-        aria-label={`공유 지도 ${label}`}
+        aria-label={`공유 지도: ${stateLabel}`}
+        title={stateLabel}
         disabled={pending}
         onClick={onToggle}
-        className={
-          variant === "detail"
-            ? "inline-flex items-center gap-2 rounded-md border border-line bg-card px-3 py-2 text-sm disabled:opacity-60"
-            : "inline-flex items-center gap-2 rounded-md border border-line px-2.5 py-1.5 text-xs disabled:opacity-60"
-        }
+        className="inline-flex items-center rounded-md p-0.5 disabled:opacity-60"
       >
         <span
           className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
             shared ? "bg-accent" : "bg-line"
-          }`}
+          } ${pending ? "opacity-70" : ""}`}
         >
           <span
             className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
@@ -90,7 +81,6 @@ export function SheetShareToggle({
             }`}
           />
         </span>
-        <span className="text-muted">{pending ? "저장 중…" : label}</span>
       </button>
       {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </div>
