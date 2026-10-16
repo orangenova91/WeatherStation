@@ -15,10 +15,21 @@ export type PublicReading = ReadingView & {
   sheetName: string;
 };
 
+export type PublicMapStats = {
+  totalReadings: number;
+  stationCount: number;
+  freshStationCount: number;
+  lastReceivedAt: string | null;
+};
+
 export type SheetSummary = {
   id: string;
   name: string;
   createdAt: string;
+  totalReadings: number;
+  locationNames: string[];
+  lastReceivedAt: string | null;
+  isFresh: boolean;
 };
 
 export const EXAMPLE_READING = {

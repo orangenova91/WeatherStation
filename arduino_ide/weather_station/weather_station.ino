@@ -69,7 +69,33 @@ WiFiManagerParameter customSensorNameParam("sensorname", "Sensor Name", sensorNa
 WiFiManagerParameter customLocationNameParam("locname", "Location Name", locationNameBuffer, LOCATION_NAME_MAX_LEN);
 WiFiManagerParameter customLatParam("lat", "Latitude (e.g. 35.53847)", latBuffer, LAT_LNG_MAX_LEN);
 WiFiManagerParameter customLngParam("lng", "Longitude (e.g. 129.31142)", lngBuffer, LAT_LNG_MAX_LEN);
+// 위도/경도 필드 아래: 휴대폰 GPS로 채우기 시도 (실패 시 수동 입력)
+WiFiManagerParameter customGeoHelp(
+  "<br/><button type='button' onclick='fillCoordsFromPhone()'>Use my location</button>"
+  "<div id='geoStatus' style='font-size:12px;margin:6px 0 4px;opacity:.85'></div>"
+  "<p style='font-size:12px;margin:0 0 8px;opacity:.75'>If blocked by the browser, enter Latitude/Longitude manually.</p>"
+);
 WiFiManagerParameter customSenderNameParam("sendername", "Sender Name", senderNameBuffer, SENDER_NAME_MAX_LEN);
+
+// 캡티브 포털(HTTP)에서는 브라우저가 Geolocation을 막을 수 있음. 되면 채우고, 안 되면 수동 입력.
+const char GEO_HEAD_SCRIPT[] =
+  "<script>"
+  "function fillCoordsFromPhone(){"
+  "var status=document.getElementById('geoStatus');"
+  "var latEl=document.getElementById('lat');"
+  "var lngEl=document.getElementById('lng');"
+  "if(!latEl||!lngEl){if(status)status.textContent='Lat/Lng fields not found.';return;}"
+  "if(!navigator.geolocation){if(status)status.textContent='Geolocation not supported. Enter manually.';return;}"
+  "if(status)status.textContent='Getting location...';"
+  "navigator.geolocation.getCurrentPosition(function(pos){"
+  "latEl.value=pos.coords.latitude.toFixed(5);"
+  "lngEl.value=pos.coords.longitude.toFixed(5);"
+  "if(status)status.textContent='Location filled. You can edit if needed.';"
+  "},function(err){"
+  "if(status)status.textContent='Could not get location. Enter Latitude/Longitude manually.';"
+  "},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});"
+  "}"
+  "</script>";
 
 // ===== 화면 상태 정의 =====
 enum ScreenState { HOME, MENU, MEASURING, SET_INTERVAL, WIFI_CONNECT };
@@ -84,8 +110,8 @@ const char* menuItems[] = {
 const int MENU_COUNT = 4;
 int menuIndex = 0;
 
-// 측정 주기이자 플랫폼 전송 주기. 전원 재시작 시 1분으로 돌아간다.
-unsigned long measureInterval = 60000UL;
+// 측정 주기이자 플랫폼 전송 주기. 전원 재시작 시 10분으로 돌아간다.
+unsigned long measureInterval = 600000UL;
 const unsigned long MIN_INTERVAL = 60000UL;
 const unsigned long MAX_INTERVAL = 3600000UL;
 const unsigned long INTERVAL_STEP = 60000UL;
@@ -129,7 +155,9 @@ void setup() {
   wm.addParameter(&customLocationNameParam);
   wm.addParameter(&customLatParam);
   wm.addParameter(&customLngParam);
+  wm.addParameter(&customGeoHelp);
   wm.addParameter(&customSenderNameParam);
+  wm.setCustomHeadElement(GEO_HEAD_SCRIPT);
 
   dht.begin();
 
@@ -313,6 +341,20 @@ void drawWifiStatusIcon() {
   }
 }
 
+// 측정 화면 전용: WiFi 아이콘 바로 왼쪽에 주기(분) 표시
+void drawIntervalNearWifi() {
+  unsigned long minutes = measureInterval / 60000UL;
+  String label = String(minutes) + "m";
+  const int charWidth = 6;
+  const int wifiLeft = SCREEN_WIDTH - 10;
+  int x = wifiLeft - (int)label.length() * charWidth - 2;
+
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(x, 0);
+  display.print(label);
+}
+
 void drawHomeScreen() {
   display.clearDisplay();
   display.setTextSize(1);
@@ -320,7 +362,7 @@ void drawHomeScreen() {
   display.setCursor(10, 15);
   display.println("Weather Station");
   display.setCursor(25, 30);
-  display.println("v1.0.0");
+  display.println("v1.0.1");
   display.setCursor(5, 50);
   display.println("Press button: Menu");
   drawWifiStatusIcon();
@@ -347,7 +389,17 @@ void handleMenuSelect() {
   switch (menuIndex) {
     case 0:
       currentState = MEASURING;
-      lastMeasureTime = 0;
+      // lastMeasureTime=0은 부팅 후 measureInterval 동안 첫 측정을 막음.
+      // 진입 즉시 1회 측정되도록 주기가 이미 지난 것처럼 맞춘다.
+      lastMeasureTime = millis() - measureInterval;
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(0, 20);
+      display.println("Measuring...");
+      drawIntervalNearWifi();
+      drawWifiStatusIcon();
+      display.display();
       break;
 
     case 1:
@@ -651,6 +703,7 @@ void runMeasurement() {
     display.setTextSize(1);
     display.setCursor(0, 20);
     display.println("Sensor Read Error!");
+    drawIntervalNearWifi();
     drawWifiStatusIcon();
     display.display();
     return;
@@ -671,25 +724,26 @@ void runMeasurement() {
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0, 0);
-  display.println("   TEMP & HUMIDITY");
+  display.println("TEMP & HUMIDITY");
   display.println("---------------------");
 
   display.setTextSize(2);
-  display.setCursor(0, 20);
+  display.setCursor(0, 18);
   display.print("Temp: ");
   display.print(t, 1);
   display.write(167);
   display.print("C");
 
-  display.setCursor(0, 42);
+  display.setCursor(0, 36);
   display.print("Humi: ");
   display.print(h, 1);
   display.println(" %");
 
   display.setTextSize(1);
-  display.setCursor(0, 50);
+  display.setCursor(0, 54);
   display.println("Hold btn 3s: Menu");
 
+  drawIntervalNearWifi();
   drawWifiStatusIcon();
   display.display();
 }

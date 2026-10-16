@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { MapPlaceholder } from "@/components/map-placeholder";
-import type { PublicReading } from "@/lib/types";
+import type { PublicMapStats, PublicReading } from "@/lib/types";
 
 const MapCanvas = dynamic(() => import("@/components/map-canvas"), {
   ssr: false,
@@ -12,8 +12,15 @@ const MapCanvas = dynamic(() => import("@/components/map-canvas"), {
 
 const REFRESH_MS = 20000;
 
-export function SharedMap({ initialReadings }: { initialReadings: PublicReading[] }) {
+export function SharedMap({
+  initialReadings,
+  initialStats,
+}: {
+  initialReadings: PublicReading[];
+  initialStats: PublicMapStats;
+}) {
   const [readings, setReadings] = useState(initialReadings);
+  const [stats, setStats] = useState(initialStats);
 
   useEffect(() => {
     let cancelled = false;
@@ -22,10 +29,15 @@ export function SharedMap({ initialReadings }: { initialReadings: PublicReading[
       try {
         const response = await fetch("/api/public/readings");
         if (!response.ok) return;
-        const data = (await response.json()) as { readings?: PublicReading[] };
-        if (!cancelled && data.readings) setReadings(data.readings);
+        const data = (await response.json()) as {
+          readings?: PublicReading[];
+          stats?: PublicMapStats;
+        };
+        if (cancelled) return;
+        if (data.readings) setReadings(data.readings);
+        if (data.stats) setStats(data.stats);
       } catch {
-        // 직전 마커를 유지한다.
+        // 직전 마커·통계를 유지한다.
       }
     }
 
@@ -36,5 +48,5 @@ export function SharedMap({ initialReadings }: { initialReadings: PublicReading[
     };
   }, []);
 
-  return <MapCanvas readings={readings} />;
+  return <MapCanvas readings={readings} stats={stats} />;
 }
