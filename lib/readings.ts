@@ -1,9 +1,15 @@
 import { connectDb } from "@/lib/db";
 import type { IngestInput } from "@/lib/ingest";
 import { Reading } from "@/models/Reading";
-import "@/models/Sheet";
+import { Sheet } from "@/models/Sheet";
 import type { PublicMapStats, PublicReading, ReadingView, SheetSummary } from "@/lib/types";
 import mongoose from "mongoose";
+
+/** 공유 지도에 올리는 시트. sharedOnMap이 없거나 true인 기존 문서 포함 */
+export async function listSharedSheetIds() {
+  await connectDb();
+  return Sheet.find({ sharedOnMap: { $ne: false } }).distinct("_id");
+}
 
 export const FRESH_WINDOW_MS = 60 * 60 * 1000;
 
@@ -84,7 +90,11 @@ type LatestPublicReading = ReadingLike & {
 
 export async function listPublicReadings(limit = 200): Promise<PublicReading[]> {
   await connectDb();
+  const sharedSheetIds = await listSharedSheetIds();
+  if (sharedSheetIds.length === 0) return [];
+
   const docs = await Reading.aggregate<LatestPublicReading>([
+    { $match: { sheetId: { $in: sharedSheetIds } } },
     { $sort: { receivedAt: -1 } },
     {
       $group: {
@@ -121,7 +131,13 @@ export async function listPublicMapData(limit = 200): Promise<{
   stats: PublicMapStats;
 }> {
   await connectDb();
-  const [readings, totalReadings] = await Promise.all([listPublicReadings(limit), Reading.countDocuments()]);
+  const sharedSheetIds = await listSharedSheetIds();
+  const [readings, totalReadings] = await Promise.all([
+    listPublicReadings(limit),
+    sharedSheetIds.length === 0
+      ? Promise.resolve(0)
+      : Reading.countDocuments({ sheetId: { $in: sharedSheetIds } }),
+  ]);
   return {
     readings,
     stats: buildPublicMapStats(readings, totalReadings),
@@ -137,7 +153,7 @@ type SheetReadingAgg = {
 
 /** 소유자 시트 목록용: 시트별 관측 요약(건수·위치명·마지막 수신·활성) */
 export async function attachSheetReadingSummaries(
-  sheets: Array<{ id: string; name: string; createdAt: string }>,
+  sheets: Array<{ id: string; name: string; createdAt: string; sharedOnMap: boolean }>,
 ): Promise<SheetSummary[]> {
   if (sheets.length === 0) return [];
 
