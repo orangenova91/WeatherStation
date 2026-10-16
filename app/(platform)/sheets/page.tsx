@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { ColumnHelpTip } from "@/components/column-help-tip";
 import { SheetCreateForm } from "@/components/sheet-create-form";
 import { SheetDeleteButton } from "@/components/sheet-delete-button";
 import { SheetShareToggle } from "@/components/sheet-share-toggle";
@@ -20,24 +21,24 @@ function formatCount(value: number) {
 }
 
 function formatLocationNames(names: string[]) {
-  if (names.length === 0) return null;
+  if (names.length === 0) return "—";
   if (names.length <= 2) return names.join(", ");
   return `${names.slice(0, 2).join(", ")} 외 ${names.length - 2}곳`;
 }
 
-function SheetListMeta({ sheet }: { sheet: SheetSummary }) {
-  if (sheet.totalReadings === 0) return null;
-
-  const location = formatLocationNames(sheet.locationNames);
-  const parts = [
-    location,
-    `${formatCount(sheet.totalReadings)}회`,
-    sheet.lastReceivedAt
-      ? `마지막 수신 ${formatReceivedAt(sheet.lastReceivedAt, false, LIST_TIME_ZONE)}`
-      : null,
-  ].filter(Boolean);
-
-  return <p className="mt-1 text-xs leading-5 text-muted">{parts.join(" · ")}</p>;
+function FreshBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-ink"
+      style={{
+        background: "rgba(216,154,43,.22)",
+        boxShadow: "inset 0 0 0 1px rgba(216,154,43,.55)",
+      }}
+    >
+      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: "#d89a2b" }} />
+      수신 중
+    </span>
+  );
 }
 
 export default function SheetsPage() {
@@ -70,7 +71,7 @@ async function SheetsContent() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
       <div>
         <h1 className="text-2xl font-medium">Data 서버 만들기</h1>
         <p className="mt-1 text-sm text-muted">
@@ -85,44 +86,61 @@ async function SheetsContent() {
           아직 시트가 없습니다.
         </p>
       ) : (
-        <ul className="overflow-hidden rounded-2xl border border-line bg-card">
-          {sheets.map((sheet) => (
-            <li key={sheet.id} className="border-b border-line last:border-b-0">
-              <div className="flex items-center gap-3 px-5 py-4 hover:bg-paper">
-                <Link href={`/sheets/${sheet.id}`} className="flex min-w-0 flex-1 items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{sheet.name}</span>
-                      {sheet.totalReadings > 0 && sheet.isFresh ? (
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-ink"
-                          style={{
-                            background: "rgba(216,154,43,.22)",
-                            boxShadow: "inset 0 0 0 1px rgba(216,154,43,.55)",
-                          }}
-                        >
-                          <span
-                            className="inline-block h-1.5 w-1.5 rounded-full"
-                            style={{ background: "#d89a2b" }}
-                          />
-                          수신 중
-                        </span>
-                      ) : null}
-                    </div>
-                    <SheetListMeta sheet={sheet} />
-                  </div>
-                  <span className="shrink-0 text-xs text-muted">
-                    {new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(
-                      new Date(sheet.createdAt),
-                    )}
-                  </span>
-                </Link>
-                <SheetShareToggle sheetId={sheet.id} initialSharedOnMap={sheet.sharedOnMap} variant="list" />
-                <SheetDeleteButton sheetId={sheet.id} sheetName={sheet.name} variant="list" />
-              </div>
-            </li>
-          ))}
-        </ul>
+        <section className="overflow-hidden rounded-2xl border border-line bg-card">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[880px] text-left text-sm">
+              <thead className="bg-paper text-xs text-muted">
+                <tr>
+                  <th className="px-4 py-3 font-medium">시트 이름</th>
+                  <th className="px-4 py-3 font-medium">위치</th>
+                  <th className="px-4 py-3 font-medium">관측</th>
+                  <th className="px-4 py-3 font-medium">마지막 수신</th>
+                  <th className="px-4 py-3 font-medium">
+                    <ColumnHelpTip label="지도 공유">
+                      켜면 이 시트 관측이 홈 공유 지도에 표시됩니다. 꺼도 수신·시트 상세·CSV는 그대로 남습니다.
+                    </ColumnHelpTip>
+                  </th>
+                  <th className="px-4 py-3 font-medium">생성일</th>
+                  <th className="px-4 py-3 font-medium">관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sheets.map((sheet) => (
+                  <tr key={sheet.id} className="border-t border-line hover:bg-paper/70">
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/sheets/${sheet.id}`} className="font-medium text-ink underline-offset-2 hover:underline">
+                          {sheet.name}
+                        </Link>
+                        {sheet.totalReadings > 0 && sheet.isFresh ? <FreshBadge /> : null}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted">{formatLocationNames(sheet.locationNames)}</td>
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {sheet.totalReadings > 0 ? `${formatCount(sheet.totalReadings)}회` : "0회"}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted">
+                      {sheet.lastReceivedAt
+                        ? formatReceivedAt(sheet.lastReceivedAt, false, LIST_TIME_ZONE)
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <SheetShareToggle sheetId={sheet.id} initialSharedOnMap={sheet.sharedOnMap} variant="list" />
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted">
+                      {new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(
+                        new Date(sheet.createdAt),
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <SheetDeleteButton sheetId={sheet.id} sheetName={sheet.name} variant="list" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );
