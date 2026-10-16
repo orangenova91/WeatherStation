@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CopyItemNumber } from "@/components/copy-item-number";
 import { PlatformFrame } from "@/components/platform-frame";
 
-const ITEM_NUMBER = "202609289528072";
+const ITEM_NUMBER = "202610169635916";
 
 export const metadata = { title: "기상대 설치 방법" };
 
@@ -11,7 +11,7 @@ const steps = [
   "로그인 후 Data 서버 만들기에서 시트를 만들고 토큰을 복사합니다.",
   "휴대폰 WIFI를 ESP32-Setup에 연결하고 브라우저에서 192.168.4.1을 엽니다.",
   "아래 순서대로 모두 입력합니다. 하나라도 비어 있으면 전송되지 않습니다.",
-  "측정을 시작합니다. 기본 간격은 1분이고, 1분에서 1시간 사이로 바꿀 수 있습니다.",
+  "측정을 시작합니다. 기본 간격은 10분이고, 1분에서 1시간 사이로 바꿀 수 있습니다.",
   "시트 표에 행이 쌓이고 공유 지도 마커가 호박색이면 수신된 것입니다. 마지막 수신이 1시간을 넘으면 회색입니다.",
 ];
 
@@ -22,6 +22,7 @@ const fields = [
   "Location Name. 위치 이름",
   "Latitude. 위도",
   "Longitude. 경도",
+  "Use my location. 가능하면 휴대폰 위치로 위도/경도를 채웁니다(안 되면 수동 입력)",
   "Sender Name. 발신자 이름. 맨 마지막에 입력합니다",
 ];
 
@@ -68,7 +69,7 @@ function FieldOrder() {
       </ol>
       <p className="mt-4 text-sm leading-6 text-muted">
         시트에서 복사한 토큰을 Token 칸에 입력해야 합니다. 기기명은 사용하는 마이크로 컨트롤러(ESP32 등...), 센서명은 측정하는 센서 이름, 위치명은 측정 위치 이름입니다.
-        좌표는 공유 지도에서 정확한 위도와 경도를 확인해서 입력해주세요. 발신자명은 사용자 이름이나 닉네임을 입력합니다.
+        좌표는 Use my location으로 채울 수 있습니다. 브라우저가 위치를 막으면 공유 지도에서 위도·경도를 확인한 뒤 수동으로 입력하세요. 발신자명은 사용자 이름이나 닉네임을 입력합니다.
       </p>
     </section>
   );

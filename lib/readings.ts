@@ -2,7 +2,36 @@ import { connectDb } from "@/lib/db";
 import type { IngestInput } from "@/lib/ingest";
 import { Reading } from "@/models/Reading";
 import "@/models/Sheet";
-import type { PublicReading, ReadingView } from "@/lib/types";
+import type { PublicMapStats, PublicReading, ReadingView, SheetSummary } from "@/lib/types";
+import mongoose from "mongoose";
+
+export const FRESH_WINDOW_MS = 60 * 60 * 1000;
+
+function buildPublicMapStats(readings: PublicReading[], totalReadings: number): PublicMapStats {
+  const stations = readings.filter(
+    (reading) => Number.isFinite(reading.latitude) && Number.isFinite(reading.longitude),
+  );
+  const now = Date.now();
+  let lastReceivedAt: string | null = null;
+  let freshStationCount = 0;
+
+  for (const reading of stations) {
+    const received = new Date(reading.receivedAt).getTime();
+    if (Number.isFinite(received) && now - received <= FRESH_WINDOW_MS) {
+      freshStationCount += 1;
+    }
+    if (!lastReceivedAt || reading.receivedAt > lastReceivedAt) {
+      lastReceivedAt = reading.receivedAt;
+    }
+  }
+
+  return {
+    totalReadings,
+    stationCount: stations.length,
+    freshStationCount,
+    lastReceivedAt,
+  };
+}
 
 type ReadingLike = {
   _id: { toString(): string };
@@ -85,6 +114,79 @@ export async function listPublicReadings(limit = 200): Promise<PublicReading[]> 
     ...toReadingView(doc),
     sheetName: doc.sheet?.[0]?.name ?? "알 수 없는 시트",
   }));
+}
+
+export async function listPublicMapData(limit = 200): Promise<{
+  readings: PublicReading[];
+  stats: PublicMapStats;
+}> {
+  await connectDb();
+  const [readings, totalReadings] = await Promise.all([listPublicReadings(limit), Reading.countDocuments()]);
+  return {
+    readings,
+    stats: buildPublicMapStats(readings, totalReadings),
+  };
+}
+
+type SheetReadingAgg = {
+  _id: mongoose.Types.ObjectId;
+  totalReadings: number;
+  lastReceivedAt: Date;
+  locationNames: string[];
+};
+
+/** 소유자 시트 목록용: 시트별 관측 요약(건수·위치명·마지막 수신·활성) */
+export async function attachSheetReadingSummaries(
+  sheets: Array<{ id: string; name: string; createdAt: string }>,
+): Promise<SheetSummary[]> {
+  if (sheets.length === 0) return [];
+
+  await connectDb();
+  const objectIds = sheets
+    .map((sheet) => sheet.id)
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  const rows =
+    objectIds.length === 0
+      ? []
+      : await Reading.aggregate<SheetReadingAgg>([
+          { $match: { sheetId: { $in: objectIds } } },
+          {
+            $group: {
+              _id: "$sheetId",
+              totalReadings: { $sum: 1 },
+              lastReceivedAt: { $max: "$receivedAt" },
+              locationNames: { $addToSet: "$locationName" },
+            },
+          },
+        ]);
+
+  const byId = new Map(
+    rows.map((row) => [
+      row._id.toString(),
+      {
+        totalReadings: row.totalReadings,
+        lastReceivedAt: row.lastReceivedAt.toISOString(),
+        locationNames: row.locationNames.filter((name) => name.trim().length > 0).sort((a, b) => a.localeCompare(b, "ko")),
+      },
+    ]),
+  );
+
+  const now = Date.now();
+  return sheets.map((sheet) => {
+    const summary = byId.get(sheet.id);
+    const lastReceivedAt = summary?.lastReceivedAt ?? null;
+    const receivedMs = lastReceivedAt ? new Date(lastReceivedAt).getTime() : NaN;
+    const isFresh = Number.isFinite(receivedMs) && now - receivedMs <= FRESH_WINDOW_MS;
+    return {
+      ...sheet,
+      totalReadings: summary?.totalReadings ?? 0,
+      locationNames: summary?.locationNames ?? [],
+      lastReceivedAt,
+      isFresh,
+    };
+  });
 }
 
 export async function createReading(sheetId: string, input: IngestInput) {

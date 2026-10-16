@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { PublicReading } from "@/lib/types";
+import type { PublicMapStats, PublicReading } from "@/lib/types";
 import { formatReceivedAt, viewerTimeZone } from "@/lib/time";
 
 const freshWindowMs = 60 * 60 * 1000;
@@ -158,10 +158,15 @@ function popupHtml(reading: PublicReading) {
 
 type MapCanvasProps = {
   readings: PublicReading[];
+  stats?: PublicMapStats;
   scrollZoom?: "always" | "click";
 };
 
-export default function MapCanvas({ readings, scrollZoom = "always" }: MapCanvasProps) {
+function formatCount(value: number) {
+  return new Intl.NumberFormat("ko-KR").format(value);
+}
+
+export default function MapCanvas({ readings, stats, scrollZoom = "always" }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
@@ -273,13 +278,42 @@ export default function MapCanvas({ readings, scrollZoom = "always" }: MapCanvas
     );
   }, [markers]);
 
+  const stationCount = stats?.stationCount ?? markers.length;
+  const freshStationCount =
+    stats?.freshStationCount ?? markers.filter((reading) => isFresh(reading.receivedAt)).length;
+  const lastReceivedAt =
+    stats?.lastReceivedAt ??
+    markers.reduce<string | null>((latest, reading) => {
+      if (!latest || reading.receivedAt > latest) return reading.receivedAt;
+      return latest;
+    }, null);
+
   return (
     <section className="relative min-h-[28rem] flex-1 overflow-hidden rounded-2xl border border-line">
       <div ref={containerRef} className="absolute inset-0" />
-      <div className="pointer-events-none absolute top-4 right-4 z-[500] flex flex-col items-end gap-2">
-        <div className="rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
-          {markers.length === 0 ? "아직 수신된 좌표가 없습니다." : `관측 지점 ${markers.length}곳`}
-        </div>
+      <div className="pointer-events-none absolute top-4 right-4 z-[500] flex max-w-[min(100%-5.5rem,22rem)] flex-col items-end gap-2">
+        {stats ? (
+          <div className="w-full rounded-2xl border border-line bg-card px-3 py-2 text-xs text-muted shadow-sm">
+            <p className="font-medium text-ink">관측 현황</p>
+            <p className="mt-1.5 leading-5">
+              전체 관측 {formatCount(stats.totalReadings)}회
+              <span className="mx-1.5 opacity-40">·</span>
+              지점 {formatCount(stationCount)}곳
+              <span className="mx-1.5 opacity-40">·</span>
+              활성 {formatCount(freshStationCount)}곳
+            </p>
+            <p className="mt-1 leading-5">
+              {lastReceivedAt
+                ? `마지막 수신 ${formatReceivedAt(lastReceivedAt, false, viewerTimeZone())}`
+                : "아직 수신된 관측이 없습니다."}
+            </p>
+            <p className="mt-1 text-[11px] opacity-80">약 20초마다 자동 갱신</p>
+          </div>
+        ) : (
+          <div className="rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
+            {markers.length === 0 ? "아직 수신된 좌표가 없습니다." : `관측 지점 ${markers.length}곳`}
+          </div>
+        )}
         <div className="rounded-2xl border border-line bg-card px-3 py-2 text-xs text-muted">
           <p className="mb-1.5 font-medium text-ink">마커 색</p>
           <p className="flex items-center gap-2">
