@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { HomeIntro } from "@/components/home-intro";
 import { MapPlaceholder } from "@/components/map-placeholder";
 import { PlatformFrame } from "@/components/platform-frame";
 import { SharedMap } from "@/components/shared-map";
@@ -9,9 +10,12 @@ import type { PublicMapStats, PublicReading } from "@/lib/types";
 export default function HomePage() {
   return (
     <PlatformFrame>
-      <Suspense fallback={<MapPlaceholder loading />}>
-        <HomeMap />
-      </Suspense>
+      <div className="flex flex-1 flex-col gap-4">
+        <HomeIntro />
+        <Suspense fallback={<MapPlaceholder loading />}>
+          <HomeMap />
+        </Suspense>
+      </div>
     </PlatformFrame>
   );
 }

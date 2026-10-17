@@ -89,18 +89,20 @@ async function SheetsContent() {
         <section className="overflow-hidden rounded-2xl border border-line bg-card">
           <ul className="divide-y divide-line md:hidden">
             {sheets.map((sheet) => (
-              <li key={sheet.id} className="space-y-3 px-4 py-4">
+              <li key={sheet.id} className="relative space-y-3 px-4 py-4 hover:bg-paper/70">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <Link
                       href={`/sheets/${sheet.id}`}
-                      className="break-all font-medium text-ink underline-offset-2 hover:underline"
+                      className="break-all font-medium text-ink after:absolute after:inset-0"
                     >
                       {sheet.name}
                     </Link>
                     {sheet.totalReadings > 0 && sheet.isFresh ? <FreshBadge /> : null}
                   </div>
-                  <SheetDeleteButton sheetId={sheet.id} sheetName={sheet.name} variant="list" />
+                  <div className="relative z-10 shrink-0">
+                    <SheetDeleteButton sheetId={sheet.id} sheetName={sheet.name} variant="list" />
+                  </div>
                 </div>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                   <dt className="text-muted">위치</dt>
@@ -118,7 +120,7 @@ async function SheetsContent() {
                   <dt className="text-muted">생성일</dt>
                   <dd className="font-mono">{formatReceivedAt(sheet.createdAt, false, LIST_TIME_ZONE)}</dd>
                 </dl>
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2 text-xs">
+                <div className="relative z-10 flex items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2 text-xs">
                   <ColumnHelpTip label="지도 공유">
                     켜면 이 시트 관측이 홈 공유 지도에 표시됩니다. 꺼도 수신·시트 상세·CSV는 그대로 남습니다.
                   </ColumnHelpTip>
@@ -146,10 +148,13 @@ async function SheetsContent() {
               </thead>
               <tbody>
                 {sheets.map((sheet) => (
-                  <tr key={sheet.id} className="border-t border-line hover:bg-paper/70">
+                  <tr key={sheet.id} className="relative border-t border-line hover:bg-paper/70">
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Link href={`/sheets/${sheet.id}`} className="font-medium text-ink underline-offset-2 hover:underline">
+                        <Link
+                          href={`/sheets/${sheet.id}`}
+                          className="font-medium text-ink after:absolute after:inset-0"
+                        >
                           {sheet.name}
                         </Link>
                         {sheet.totalReadings > 0 && sheet.isFresh ? <FreshBadge /> : null}
@@ -165,13 +170,17 @@ async function SheetsContent() {
                         : "—"}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <SheetShareToggle sheetId={sheet.id} initialSharedOnMap={sheet.sharedOnMap} variant="list" />
+                      <div className="relative z-10 inline-block">
+                        <SheetShareToggle sheetId={sheet.id} initialSharedOnMap={sheet.sharedOnMap} variant="list" />
+                      </div>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted">
                       {formatReceivedAt(sheet.createdAt, false, LIST_TIME_ZONE)}
                     </td>
                     <td className="px-4 py-3">
-                      <SheetDeleteButton sheetId={sheet.id} sheetName={sheet.name} variant="list" />
+                      <div className="relative z-10 inline-block">
+                        <SheetDeleteButton sheetId={sheet.id} sheetName={sheet.name} variant="list" />
+                      </div>
                     </td>
                   </tr>
                 ))}
