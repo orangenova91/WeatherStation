@@ -45,6 +45,8 @@ export function formatReceivedAt(value: string | number, withSeconds = true, tim
     minute: "2-digit",
     second: withSeconds ? "2-digit" : undefined,
     hourCycle: "h23",
-  }).format(date);
+  })
+    .format(date)
+    .replace(/\s+/g, "");
   return `${formatted} ${offsetLabel(date, timeZone)}`;
 }
