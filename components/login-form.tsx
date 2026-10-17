@@ -43,7 +43,7 @@ export function LoginForm() {
         required
         value={email}
         onChange={(event) => setEmail(event.target.value)}
-        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-base outline-none focus:border-accent md:text-sm"
       />
       <label className="mt-4 block text-sm" htmlFor="password">
         비밀번호
@@ -55,7 +55,7 @@ export function LoginForm() {
         required
         value={password}
         onChange={(event) => setPassword(event.target.value)}
-        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-base outline-none focus:border-accent md:text-sm"
       />
       {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
       <button

@@ -13,7 +13,7 @@ import { EXAMPLE_READING, type PublicReading, type ReadingView } from "@/lib/typ
 const MapCanvas = dynamic(() => import("@/components/map-canvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex min-h-[28rem] flex-1 items-center justify-center rounded-2xl border border-line bg-[#e7f0ea] text-sm text-muted">
+    <div className="flex min-h-[20rem] flex-1 items-center justify-center rounded-2xl border border-line bg-[#e7f0ea] text-sm text-muted md:min-h-[28rem]">
       지도를 불러오는 중…
     </div>
   ),
@@ -151,7 +151,7 @@ export function SheetLive({
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-medium">{name}</h1>
+          <h1 className="break-all text-xl font-medium md:text-2xl">{name}</h1>
           <p className="mt-1 flex items-center gap-2 text-sm text-muted">
             <span className={`h-2 w-2 rounded-full ${status === "live" ? "bg-accent" : "bg-muted"}`} />
             {statusLabel}
@@ -171,7 +171,7 @@ export function SheetLive({
       </div>
 
       <div className="grid items-stretch gap-5 lg:grid-cols-2">
-        <section className="rounded-2xl border border-line bg-card p-5">
+        <section className="min-w-0 rounded-2xl border border-line bg-card p-4 md:p-5">
           <h2 className="text-base font-medium">송신 토큰</h2>
           <p className="mt-1 text-sm leading-6 text-muted">
             ESP32 설정 화면의 Token 칸에 이 토큰만 넣으면 아래 표에 쌓입니다.
@@ -205,23 +205,23 @@ export function SheetLive({
           </div>
           {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
         </section>
-        <div className="flex h-full min-h-[28rem] flex-col">
+        <div className="flex h-full min-h-[20rem] flex-col md:min-h-[28rem]">
           <MapCanvas readings={stations} scrollZoom="click" />
         </div>
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-line bg-card">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 md:px-5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h2 className="text-base font-medium">수신 기록</h2>
             <p className="text-sm text-muted">total: {formatCount(total)}건</p>
             <a
               href={`/api/sheets/${sheetId}/export?timeZone=${encodeURIComponent(timeZone)}`}
-              className="rounded-md border border-line px-3 py-1 text-sm"
+              className="rounded-md border border-line px-3 py-2 text-sm md:py-1"
             >
               CSV 받기
             </a>
-            <p className="text-sm text-muted">아래 표에는 최신 100건만 표시됩니다.</p>
+            <p className="w-full text-xs text-muted md:w-auto md:text-sm">아래 표에는 최신 100건만 표시됩니다.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {view === "chart" && stations.length > 1 ? (
@@ -230,7 +230,7 @@ export function SheetLive({
                 <select
                   value={stationFilter}
                   onChange={(event) => setStationFilter(event.target.value)}
-                  className="rounded-md border border-line bg-white px-2 py-1.5 text-sm text-ink outline-none"
+                  className="max-w-[60vw] rounded-md border border-line bg-white px-2 py-2 text-base text-ink outline-none md:max-w-none md:py-1.5 md:text-sm"
                 >
                   <option value="all">전체</option>
                   {stations.map((station) => (
@@ -246,7 +246,7 @@ export function SheetLive({
                 type="button"
                 aria-pressed={view === "table"}
                 onClick={() => setView("table")}
-                className={`rounded px-3 py-1 ${view === "table" ? "bg-sidebar text-white" : "text-muted"}`}
+                className={`rounded px-4 py-2 md:px-3 md:py-1 ${view === "table" ? "bg-sidebar text-white" : "text-muted"}`}
               >
                 표
               </button>
@@ -254,7 +254,7 @@ export function SheetLive({
                 type="button"
                 aria-pressed={view === "chart"}
                 onClick={() => setView("chart")}
-                className={`rounded px-3 py-1 ${view === "chart" ? "bg-sidebar text-white" : "text-muted"}`}
+                className={`rounded px-4 py-2 md:px-3 md:py-1 ${view === "chart" ? "bg-sidebar text-white" : "text-muted"}`}
               >
                 그래프
               </button>
@@ -266,41 +266,68 @@ export function SheetLive({
         ) : view === "chart" ? (
           <ReadingChart readings={chartReadings} timeZone={timeZone} />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-sm">
-              <thead className="bg-paper text-xs text-muted">
-                <tr>
-                  <th className="px-4 py-3 font-medium">수신 시각</th>
-                  <th className="px-4 py-3 font-medium">기기명</th>
-                  <th className="px-4 py-3 font-medium">센서명</th>
-                  <th className="px-4 py-3 font-medium">온도</th>
-                  <th className="px-4 py-3 font-medium">습도</th>
-                  <th className="px-4 py-3 font-medium">위치명</th>
-                  <th className="px-4 py-3 font-medium">위도</th>
-                  <th className="px-4 py-3 font-medium">경도</th>
-                  <th className="px-4 py-3 font-medium">발신자명</th>
-                </tr>
-              </thead>
-              <tbody>
-                {readings.map((reading) => (
-                  <tr
-                    key={reading.id}
-                    className={`border-t border-line ${reading.id === freshId ? "bg-accent/10" : ""}`}
-                  >
-                    <td className="px-4 py-3 font-mono text-xs">{formatReceivedAt(reading.receivedAt, true, timeZone)}</td>
-                    <td className="px-4 py-3">{reading.deviceName}</td>
-                    <td className="px-4 py-3">{reading.sensorName}</td>
-                    <td className="px-4 py-3 font-mono">{formatMeasure(reading.temperature)} °C</td>
-                    <td className="px-4 py-3 font-mono">{formatMeasure(reading.humidity)} %</td>
-                    <td className="px-4 py-3">{reading.locationName}</td>
-                    <td className="px-4 py-3 font-mono">{reading.latitude.toFixed(5)}</td>
-                    <td className="px-4 py-3 font-mono">{reading.longitude.toFixed(5)}</td>
-                    <td className="px-4 py-3">{reading.senderName}</td>
+          <>
+            <ul className="divide-y divide-line md:hidden">
+              {readings.map((reading) => (
+                <li
+                  key={reading.id}
+                  className={`space-y-1.5 px-4 py-3 ${reading.id === freshId ? "bg-accent/10" : ""}`}
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="min-w-0 truncate text-sm font-medium">{reading.locationName}</p>
+                    <p className="shrink-0 font-mono text-xs text-muted">
+                      {formatReceivedAt(reading.receivedAt, true, timeZone)}
+                    </p>
+                  </div>
+                  <p className="flex gap-4 font-mono text-base">
+                    <span>{formatMeasure(reading.temperature)} °C</span>
+                    <span>{formatMeasure(reading.humidity)} %</span>
+                  </p>
+                  <p className="text-xs text-muted">
+                    {reading.deviceName} · {reading.sensorName} · {reading.senderName}
+                  </p>
+                  <p className="font-mono text-[11px] text-muted">
+                    {reading.latitude.toFixed(5)}, {reading.longitude.toFixed(5)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[980px] text-left text-sm">
+                <thead className="bg-paper text-xs text-muted">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">수신 시각</th>
+                    <th className="px-4 py-3 font-medium">기기명</th>
+                    <th className="px-4 py-3 font-medium">센서명</th>
+                    <th className="px-4 py-3 font-medium">온도</th>
+                    <th className="px-4 py-3 font-medium">습도</th>
+                    <th className="px-4 py-3 font-medium">위치명</th>
+                    <th className="px-4 py-3 font-medium">위도</th>
+                    <th className="px-4 py-3 font-medium">경도</th>
+                    <th className="px-4 py-3 font-medium">발신자명</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {readings.map((reading) => (
+                    <tr
+                      key={reading.id}
+                      className={`border-t border-line ${reading.id === freshId ? "bg-accent/10" : ""}`}
+                    >
+                      <td className="px-4 py-3 font-mono text-xs">{formatReceivedAt(reading.receivedAt, true, timeZone)}</td>
+                      <td className="px-4 py-3">{reading.deviceName}</td>
+                      <td className="px-4 py-3">{reading.sensorName}</td>
+                      <td className="px-4 py-3 font-mono">{formatMeasure(reading.temperature)} °C</td>
+                      <td className="px-4 py-3 font-mono">{formatMeasure(reading.humidity)} %</td>
+                      <td className="px-4 py-3">{reading.locationName}</td>
+                      <td className="px-4 py-3 font-mono">{reading.latitude.toFixed(5)}</td>
+                      <td className="px-4 py-3 font-mono">{reading.longitude.toFixed(5)}</td>
+                      <td className="px-4 py-3">{reading.senderName}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>
