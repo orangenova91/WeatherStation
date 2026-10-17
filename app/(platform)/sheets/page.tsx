@@ -95,7 +95,7 @@ async function SheetsContent() {
                   <th className="px-4 py-3 font-medium">위치</th>
                   <th className="px-4 py-3 font-medium">관측</th>
                   <th className="px-4 py-3 font-medium">마지막 수신</th>
-                  <th className="px-4 py-3 font-medium">
+                  <th className="px-4 py-3 font- text-center">
                     <ColumnHelpTip label="지도 공유">
                       켜면 이 시트 관측이 홈 공유 지도에 표시됩니다. 꺼도 수신·시트 상세·CSV는 그대로 남습니다.
                     </ColumnHelpTip>
@@ -124,13 +124,11 @@ async function SheetsContent() {
                         ? formatReceivedAt(sheet.lastReceivedAt, false, LIST_TIME_ZONE)
                         : "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       <SheetShareToggle sheetId={sheet.id} initialSharedOnMap={sheet.sharedOnMap} variant="list" />
                     </td>
-                    <td className="px-4 py-3 text-xs text-muted">
-                      {new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(
-                        new Date(sheet.createdAt),
-                      )}
+                    <td className="px-4 py-3 font-mono text-xs text-muted">
+                      {formatReceivedAt(sheet.createdAt, false, LIST_TIME_ZONE)}
                     </td>
                     <td className="px-4 py-3">
                       <SheetDeleteButton sheetId={sheet.id} sheetName={sheet.name} variant="list" />
