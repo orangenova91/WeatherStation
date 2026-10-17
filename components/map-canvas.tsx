@@ -39,7 +39,7 @@ const popupCss = `
 }
 .station-popup .leaflet-popup-content {
   margin: 0;
-  width: 260px !important;
+  width: min(260px, calc(100vw - 72px)) !important;
   font-family: "Noto Sans KR", sans-serif;
   line-height: 1.4;
 }
@@ -174,6 +174,7 @@ export default function MapCanvas({ readings, stats, scrollZoom = "always" }: Ma
   const scrollZoomRef = useRef(scrollZoom);
   const [pointer, setPointer] = useState<{ lat: number; lng: number } | null>(null);
   const [wheelOn, setWheelOn] = useState(scrollZoom === "always");
+  const [infoOpen, setInfoOpen] = useState(false);
   const markers = useMemo(
     () => readings.filter((reading) => Number.isFinite(reading.latitude) && Number.isFinite(reading.longitude)),
     [readings],
@@ -188,7 +189,11 @@ export default function MapCanvas({ readings, stats, scrollZoom = "always" }: Ma
     if (!node || mapRef.current) return;
 
     ensurePopupStyle();
-    const map = L.map(node, { scrollWheelZoom: scrollZoomRef.current === "always" }).setView(koreaCenter, 7);
+    const lockTouchDrag = scrollZoomRef.current === "click" && window.matchMedia("(pointer: coarse)").matches;
+    const map = L.map(node, {
+      scrollWheelZoom: scrollZoomRef.current === "always",
+      dragging: !lockTouchDrag,
+    }).setView(koreaCenter, 7);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
@@ -206,8 +211,9 @@ export default function MapCanvas({ readings, stats, scrollZoom = "always" }: Ma
     const onMouseOut = () => {
       setPointer(null);
     };
-    const enableWheel = () => {
-      if (scrollZoomRef.current !== "click") return;
+    const container = map.getContainer();
+    const enableWheel = (event: PointerEvent) => {
+      if (scrollZoomRef.current !== "click" || event.pointerType === "touch") return;
       map.scrollWheelZoom.enable();
       setWheelOn(true);
     };
@@ -216,19 +222,33 @@ export default function MapCanvas({ readings, stats, scrollZoom = "always" }: Ma
       map.scrollWheelZoom.disable();
       setWheelOn(false);
     };
-    const container = map.getContainer();
+    const enableTouchDrag = () => {
+      map.dragging.enable();
+      setWheelOn(true);
+    };
+    const releaseTouchDrag = (event: PointerEvent) => {
+      if (container.contains(event.target as Node)) return;
+      map.dragging.disable();
+      setWheelOn(false);
+    };
     map.on("mousemove", onMouseMove);
     container.addEventListener("mouseleave", onMouseOut);
     if (scrollZoomRef.current === "click") {
       container.addEventListener("pointerdown", enableWheel);
       container.addEventListener("mouseleave", disableWheel);
     }
+    if (lockTouchDrag) {
+      map.on("click", enableTouchDrag);
+      document.addEventListener("pointerdown", releaseTouchDrag);
+    }
 
     return () => {
       map.off("mousemove", onMouseMove);
+      map.off("click", enableTouchDrag);
       container.removeEventListener("mouseleave", onMouseOut);
       container.removeEventListener("pointerdown", enableWheel);
       container.removeEventListener("mouseleave", disableWheel);
+      document.removeEventListener("pointerdown", releaseTouchDrag);
       observer.disconnect();
       map.remove();
       mapRef.current = null;
@@ -289,56 +309,68 @@ export default function MapCanvas({ readings, stats, scrollZoom = "always" }: Ma
     }, null);
 
   return (
-    <section className="relative min-h-[28rem] flex-1 overflow-hidden rounded-2xl border border-line">
+    <section className="relative min-h-[20rem] flex-1 overflow-hidden rounded-2xl border border-line md:min-h-[28rem]">
       <div ref={containerRef} className="absolute inset-0" />
-      <div className="pointer-events-none absolute top-4 right-4 z-[500] flex max-w-[min(100%-5.5rem,22rem)] flex-col items-end gap-2">
-        {stats ? (
-          <div className="w-full rounded-2xl border border-line bg-card px-3 py-2 text-xs text-muted shadow-sm">
-            <p className="font-medium text-ink">관측 현황</p>
-            <p className="mt-1.5 leading-5">
-              전체 관측 {formatCount(stats.totalReadings)}회
-              <span className="mx-1.5 opacity-40">·</span>
-              지점 {formatCount(stationCount)}곳
-              <span className="mx-1.5 opacity-40">·</span>
-              활성 {formatCount(freshStationCount)}곳
+      <div className="pointer-events-none absolute top-3 right-3 z-[500] flex max-w-[min(100%-4.5rem,22rem)] flex-col items-end gap-2 md:top-4 md:right-4 md:max-w-[min(100%-5.5rem,22rem)]">
+        <button
+          type="button"
+          onClick={() => setInfoOpen((open) => !open)}
+          aria-expanded={infoOpen}
+          className="pointer-events-auto rounded-full border border-line bg-card px-3 py-2 text-xs text-ink shadow-sm md:hidden"
+        >
+          지점 {formatCount(stationCount)}곳 · 활성 {formatCount(freshStationCount)}곳
+          <span aria-hidden className="ml-1.5 text-muted">{infoOpen ? "▴" : "▾"}</span>
+        </button>
+        <div className={`${infoOpen ? "flex" : "hidden"} w-full flex-col items-end gap-2 md:flex`}>
+          {stats ? (
+            <div className="w-full rounded-2xl border border-line bg-card px-3 py-2 text-xs text-muted shadow-sm">
+              <p className="font-medium text-ink">관측 현황</p>
+              <p className="mt-1.5 leading-5">
+                전체 관측 {formatCount(stats.totalReadings)}회
+                <span className="mx-1.5 opacity-40">·</span>
+                지점 {formatCount(stationCount)}곳
+                <span className="mx-1.5 opacity-40">·</span>
+                활성 {formatCount(freshStationCount)}곳
+              </p>
+              <p className="mt-1 leading-5">
+                {lastReceivedAt
+                  ? `마지막 수신 ${formatReceivedAt(lastReceivedAt, false, viewerTimeZone())}`
+                  : "아직 수신된 관측이 없습니다."}
+              </p>
+              <p className="mt-1 text-[11px] opacity-80">약 20초마다 자동 갱신</p>
+            </div>
+          ) : (
+            <div className="rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
+              {markers.length === 0 ? "아직 수신된 좌표가 없습니다." : `관측 지점 ${markers.length}곳`}
+            </div>
+          )}
+          <div className="rounded-2xl border border-line bg-card px-3 py-2 text-xs text-muted">
+            <p className="mb-1.5 font-medium text-ink">마커 색</p>
+            <p className="flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-3 shrink-0 rounded-full"
+                style={{ background: "#d89a2b", boxShadow: "0 0 0 2px #12202a" }}
+              />
+              1시간 이내 수신
             </p>
-            <p className="mt-1 leading-5">
-              {lastReceivedAt
-                ? `마지막 수신 ${formatReceivedAt(lastReceivedAt, false, viewerTimeZone())}`
-                : "아직 수신된 관측이 없습니다."}
+            <p className="mt-1.5 flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-3 shrink-0 rounded-full"
+                style={{ background: "#9aa6ae", boxShadow: "0 0 0 2px #12202a" }}
+              />
+              1시간 넘게 없음
             </p>
-            <p className="mt-1 text-[11px] opacity-80">약 20초마다 자동 갱신</p>
           </div>
-        ) : (
-          <div className="rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
-            {markers.length === 0 ? "아직 수신된 좌표가 없습니다." : `관측 지점 ${markers.length}곳`}
-          </div>
-        )}
-        <div className="rounded-2xl border border-line bg-card px-3 py-2 text-xs text-muted">
-          <p className="mb-1.5 font-medium text-ink">마커 색</p>
-          <p className="flex items-center gap-2">
-            <span
-              className="inline-block h-3 w-3 shrink-0 rounded-full"
-              style={{ background: "#d89a2b", boxShadow: "0 0 0 2px #12202a" }}
-            />
-            1시간 이내 수신
-          </p>
-          <p className="mt-1.5 flex items-center gap-2">
-            <span
-              className="inline-block h-3 w-3 shrink-0 rounded-full"
-              style={{ background: "#9aa6ae", boxShadow: "0 0 0 2px #12202a" }}
-            />
-            1시간 넘게 없음
-          </p>
         </div>
       </div>
       {scrollZoom === "click" && !wheelOn ? (
-        <div className="pointer-events-none absolute bottom-4 left-1/2 z-[500] -translate-x-1/2 rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
-          클릭 후에 휠로 확대 할 수 있습니다.
+        <div className="pointer-events-none absolute bottom-4 left-1/2 z-[500] -translate-x-1/2 whitespace-nowrap rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
+          <span className="pointer-coarse:hidden">클릭 후에 휠로 확대 할 수 있습니다.</span>
+          <span className="hidden pointer-coarse:inline">지도를 탭하면 움직일 수 있습니다.</span>
         </div>
       ) : null}
       {pointer ? (
-        <div className="pointer-events-none absolute bottom-4 left-4 z-[500] rounded-full border border-line bg-card px-3 py-1 font-mono text-xs text-ink">
+        <div className="pointer-events-none absolute bottom-4 left-4 z-[500] rounded-full border border-line bg-card px-3 py-1 font-mono text-xs text-ink pointer-coarse:hidden">
           Lat {formatCoord(pointer.lat)} · Lon {formatCoord(pointer.lng)}
         </div>
       ) : null}

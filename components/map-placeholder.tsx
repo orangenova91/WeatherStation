@@ -12,7 +12,7 @@ export function MapPlaceholder({ count, offline = false, loading = false }: MapP
   else if (typeof count === "number") status = `최근 수신 목록 ${count}건이 저장되어 있습니다.`;
 
   return (
-    <section className="relative min-h-[32rem] flex-1 overflow-hidden rounded-2xl border border-line bg-[#e7f0ea]">
+    <section className="relative min-h-[20rem] flex-1 md:min-h-[32rem] overflow-hidden rounded-2xl border border-line bg-[#e7f0ea]">
       <div
         className="absolute inset-0"
         style={{
@@ -25,7 +25,7 @@ export function MapPlaceholder({ count, offline = false, loading = false }: MapP
       <div className="absolute top-4 right-5 rounded-full border border-line bg-card px-3 py-1 text-xs text-muted">
         실시간 마커 · 준비 중
       </div>
-      <div className="relative flex min-h-[32rem] items-center justify-center p-6">
+      <div className="relative flex min-h-[20rem] items-center justify-center p-6 md:min-h-[32rem]">
         <div className="max-w-md rounded-2xl border border-line bg-card/95 px-6 py-5 text-center shadow-sm">
           <p className="text-lg font-medium">공유 지도</p>
           <p className="mt-2 text-sm leading-6 text-muted">{status}</p>

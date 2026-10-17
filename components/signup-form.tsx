@@ -73,7 +73,7 @@ export function SignupForm() {
           required
           value={code}
           onChange={(event) => setCode(event.target.value)}
-          className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 font-mono text-sm tracking-[0.3em] outline-none focus:border-accent"
+          className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 font-mono text-base tracking-[0.3em] outline-none focus:border-accent md:text-sm"
         />
         {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
         <button
@@ -109,7 +109,7 @@ export function SignupForm() {
         required
         value={email}
         onChange={(event) => setEmail(event.target.value)}
-        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-base outline-none focus:border-accent md:text-sm"
       />
       <label className="mt-4 block text-sm" htmlFor="password">
         비밀번호
@@ -122,7 +122,7 @@ export function SignupForm() {
         required
         value={password}
         onChange={(event) => setPassword(event.target.value)}
-        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-base outline-none focus:border-accent md:text-sm"
       />
       <p className="mt-1 text-xs text-muted">8자 이상</p>
       <label className="mt-4 block text-sm" htmlFor="confirmPassword">
@@ -135,7 +135,7 @@ export function SignupForm() {
         required
         value={confirmPassword}
         onChange={(event) => setConfirmPassword(event.target.value)}
-        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+        className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-base outline-none focus:border-accent md:text-sm"
       />
       {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
       <button

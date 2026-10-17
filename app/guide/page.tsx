@@ -28,7 +28,7 @@ const fields = [
 
 function StepItem({ index, step }: { index: number; step: string }) {
   return (
-    <li className="flex gap-3 rounded-2xl border border-line bg-card px-5 py-4">
+    <li className="flex gap-3 rounded-2xl border border-line bg-card px-4 py-4 md:px-5">
       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sidebar text-xs text-white">
         {index + 1}
       </span>
@@ -79,9 +79,9 @@ export default function GuidePage() {
   return (
     <PlatformFrame>
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:gap-4">
           <div>
-            <h1 className="text-2xl font-medium">기상대 설치 방법</h1>
+            <h1 className="text-xl font-medium md:text-2xl">기상대 설치 방법</h1>
             <p className="mt-1 text-sm text-muted">관측값을 이 플랫폼으로 보내는 순서입니다.</p>
           </div>
           <section className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border border-line bg-card px-3 py-2 text-xs">

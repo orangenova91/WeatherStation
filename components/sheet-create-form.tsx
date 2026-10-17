@@ -43,7 +43,7 @@ export function SheetCreateForm() {
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="시트 이름"
-          className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-accent"
+          className="w-full rounded-md border border-line bg-white px-3 py-2 text-base outline-none focus:border-accent md:text-sm"
         />
         <button
           type="submit"

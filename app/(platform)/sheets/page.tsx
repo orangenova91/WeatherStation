@@ -73,7 +73,7 @@ async function SheetsContent() {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-medium">Data 서버 만들기</h1>
+        <h1 className="text-xl font-medium md:text-2xl">Data 서버 만들기</h1>
         <p className="mt-1 text-sm text-muted">
           기기에서 보낼 데이터베이스 시트를 만듭니다. 공유 지도 표시는 시트마다 끌 수 있습니다.
         </p>
@@ -87,7 +87,47 @@ async function SheetsContent() {
         </p>
       ) : (
         <section className="overflow-hidden rounded-2xl border border-line bg-card">
-          <div className="overflow-x-auto">
+          <ul className="divide-y divide-line md:hidden">
+            {sheets.map((sheet) => (
+              <li key={sheet.id} className="space-y-3 px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <Link
+                      href={`/sheets/${sheet.id}`}
+                      className="break-all font-medium text-ink underline-offset-2 hover:underline"
+                    >
+                      {sheet.name}
+                    </Link>
+                    {sheet.totalReadings > 0 && sheet.isFresh ? <FreshBadge /> : null}
+                  </div>
+                  <SheetDeleteButton sheetId={sheet.id} sheetName={sheet.name} variant="list" />
+                </div>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                  <dt className="text-muted">위치</dt>
+                  <dd>{formatLocationNames(sheet.locationNames)}</dd>
+                  <dt className="text-muted">관측</dt>
+                  <dd className="font-mono">
+                    {sheet.totalReadings > 0 ? `${formatCount(sheet.totalReadings)}회` : "0회"}
+                  </dd>
+                  <dt className="text-muted">마지막 수신</dt>
+                  <dd className="font-mono">
+                    {sheet.lastReceivedAt
+                      ? formatReceivedAt(sheet.lastReceivedAt, false, LIST_TIME_ZONE)
+                      : "—"}
+                  </dd>
+                  <dt className="text-muted">생성일</dt>
+                  <dd className="font-mono">{formatReceivedAt(sheet.createdAt, false, LIST_TIME_ZONE)}</dd>
+                </dl>
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-paper px-3 py-2 text-xs">
+                  <ColumnHelpTip label="지도 공유">
+                    켜면 이 시트 관측이 홈 공유 지도에 표시됩니다. 꺼도 수신·시트 상세·CSV는 그대로 남습니다.
+                  </ColumnHelpTip>
+                  <SheetShareToggle sheetId={sheet.id} initialSharedOnMap={sheet.sharedOnMap} variant="list" />
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[880px] text-left text-sm">
               <thead className="bg-paper text-xs text-muted">
                 <tr>
@@ -95,7 +135,7 @@ async function SheetsContent() {
                   <th className="px-4 py-3 font-medium">위치</th>
                   <th className="px-4 py-3 font-medium">관측</th>
                   <th className="px-4 py-3 font-medium">마지막 수신</th>
-                  <th className="px-4 py-3 font- text-center">
+                  <th className="px-4 py-3 font-medium text-center">
                     <ColumnHelpTip label="지도 공유">
                       켜면 이 시트 관측이 홈 공유 지도에 표시됩니다. 꺼도 수신·시트 상세·CSV는 그대로 남습니다.
                     </ColumnHelpTip>
