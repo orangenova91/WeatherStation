@@ -263,8 +263,13 @@ export default function MapCanvas({ readings, stats, scrollZoom = "always" }: Ma
     if (!map || !group) return;
 
     group.clearLayers();
-    for (const reading of markers) {
-      L.marker([reading.latitude, reading.longitude], { icon: stationIcon(isFresh(reading.receivedAt)) })
+    const ordered = [...markers].sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
+    ordered.forEach((reading, index) => {
+      // Leaflet z-index is pixel y + offset; the step must exceed the marker size so recency beats position.
+      L.marker([reading.latitude, reading.longitude], {
+        icon: stationIcon(isFresh(reading.receivedAt)),
+        zIndexOffset: index * 100,
+      })
         .bindPopup(popupHtml(reading), {
           className: "station-popup",
           autoPan: true,
@@ -272,7 +277,7 @@ export default function MapCanvas({ readings, stats, scrollZoom = "always" }: Ma
           minWidth: 260,
         })
         .addTo(group);
-    }
+    });
 
     const placeKey = markers
       .map(
