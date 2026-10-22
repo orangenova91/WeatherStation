@@ -206,7 +206,7 @@ export function SheetLive({
           {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
         </section>
         <div className="flex h-full min-h-[20rem] flex-col md:min-h-[28rem]">
-          <MapCanvas readings={stations} scrollZoom="click" />
+          <MapCanvas readings={stations} scrollZoom="click" locationMode="auto" />
         </div>
       </div>
 
