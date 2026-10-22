@@ -69,33 +69,7 @@ WiFiManagerParameter customSensorNameParam("sensorname", "Sensor Name", sensorNa
 WiFiManagerParameter customLocationNameParam("locname", "Location Name", locationNameBuffer, LOCATION_NAME_MAX_LEN);
 WiFiManagerParameter customLatParam("lat", "Latitude (e.g. 35.53847)", latBuffer, LAT_LNG_MAX_LEN);
 WiFiManagerParameter customLngParam("lng", "Longitude (e.g. 129.31142)", lngBuffer, LAT_LNG_MAX_LEN);
-// 위도/경도 필드 아래: 휴대폰 GPS로 채우기 시도 (실패 시 수동 입력)
-WiFiManagerParameter customGeoHelp(
-  "<br/><button type='button' onclick='fillCoordsFromPhone()'>Use my location</button>"
-  "<div id='geoStatus' style='font-size:12px;margin:6px 0 4px;opacity:.85'></div>"
-  "<p style='font-size:12px;margin:0 0 8px;opacity:.75'>If blocked by the browser, enter Latitude/Longitude manually.</p>"
-);
 WiFiManagerParameter customSenderNameParam("sendername", "Sender Name", senderNameBuffer, SENDER_NAME_MAX_LEN);
-
-// 캡티브 포털(HTTP)에서는 브라우저가 Geolocation을 막을 수 있음. 되면 채우고, 안 되면 수동 입력.
-const char GEO_HEAD_SCRIPT[] =
-  "<script>"
-  "function fillCoordsFromPhone(){"
-  "var status=document.getElementById('geoStatus');"
-  "var latEl=document.getElementById('lat');"
-  "var lngEl=document.getElementById('lng');"
-  "if(!latEl||!lngEl){if(status)status.textContent='Lat/Lng fields not found.';return;}"
-  "if(!navigator.geolocation){if(status)status.textContent='Geolocation not supported. Enter manually.';return;}"
-  "if(status)status.textContent='Getting location...';"
-  "navigator.geolocation.getCurrentPosition(function(pos){"
-  "latEl.value=pos.coords.latitude.toFixed(5);"
-  "lngEl.value=pos.coords.longitude.toFixed(5);"
-  "if(status)status.textContent='Location filled. You can edit if needed.';"
-  "},function(err){"
-  "if(status)status.textContent='Could not get location. Enter Latitude/Longitude manually.';"
-  "},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});"
-  "}"
-  "</script>";
 
 // ===== 화면 상태 정의 =====
 enum ScreenState { HOME, MENU, MEASURING, SET_INTERVAL, WIFI_CONNECT };
@@ -155,9 +129,7 @@ void setup() {
   wm.addParameter(&customLocationNameParam);
   wm.addParameter(&customLatParam);
   wm.addParameter(&customLngParam);
-  wm.addParameter(&customGeoHelp);
   wm.addParameter(&customSenderNameParam);
-  wm.setCustomHeadElement(GEO_HEAD_SCRIPT);
 
   dht.begin();
 
@@ -362,7 +334,7 @@ void drawHomeScreen() {
   display.setCursor(10, 15);
   display.println("Weather Station");
   display.setCursor(25, 30);
-  display.println("v1.0.3");
+  display.println("v1.0.4");
   display.setCursor(5, 50);
   display.println("Press button: Menu");
   drawWifiStatusIcon();

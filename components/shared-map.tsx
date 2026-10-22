@@ -48,5 +48,5 @@ export function SharedMap({
     };
   }, []);
 
-  return <MapCanvas readings={readings} stats={stats} />;
+  return <MapCanvas readings={readings} stats={stats} locationMode="on-demand" />;
 }
