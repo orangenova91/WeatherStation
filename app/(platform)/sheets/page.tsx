@@ -31,11 +31,11 @@ function FreshBadge() {
     <span
       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-ink"
       style={{
-        background: "rgba(216,154,43,.22)",
-        boxShadow: "inset 0 0 0 1px rgba(216,154,43,.55)",
+        background: "rgba(46,158,91,.16)",
+        boxShadow: "inset 0 0 0 1px rgba(46,158,91,.5)",
       }}
     >
-      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: "#d89a2b" }} />
+      <span className="live-dot h-1.5 w-1.5" />
       수신 중
     </span>
   );
