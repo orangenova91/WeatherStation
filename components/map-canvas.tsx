@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { PublicMapStats, PublicReading } from "@/lib/types";
@@ -13,12 +13,19 @@ function isFresh(receivedAt: string) {
   return Number.isFinite(received) && Date.now() - received <= freshWindowMs;
 }
 
+const twinklePeriodMs = 1800;
+
+// Markers are rebuilt on every refresh; a clock-based negative delay keeps the twinkle from restarting.
+function twinkleDelay() {
+  return `-${Date.now() % twinklePeriodMs}ms`;
+}
+
 function stationIcon(fresh: boolean) {
-  const background = fresh ? "#d89a2b" : "#9aa6ae";
-  const halo = fresh ? "rgba(216,154,43,.35)" : "rgba(154,166,174,.45)";
+  const state = fresh ? "fresh" : "stale";
+  const style = fresh ? ` style="--twinkle-delay:${twinkleDelay()}"` : "";
   return L.divIcon({
     className: "station-marker",
-    html: `<span class="station-marker-dot" style="display:block;box-sizing:border-box;width:18px;height:18px;border-radius:999px;background:${background};border:2px solid #12202a;box-shadow:0 0 0 4px ${halo}"></span>`,
+    html: `<span class="station-marker-dot station-marker-dot--${state}"${style}></span>`,
     iconSize: [18, 18],
     iconAnchor: [9, 9],
     popupAnchor: [0, -14],
@@ -311,6 +318,7 @@ export default function MapCanvas({
   const [pointer, setPointer] = useState<{ lat: number; lng: number } | null>(null);
   const [wheelOn, setWheelOn] = useState(scrollZoom === "always");
   const [infoOpen, setInfoOpen] = useState(false);
+  const [legendDelay] = useState(twinkleDelay);
   const [myLocation, setMyLocation] = useState<MyLocation | null>(null);
   const geolocationSupported = "geolocation" in navigator;
   const [locationState, setLocationState] = useState<LocationState>(() => {
@@ -669,8 +677,8 @@ export default function MapCanvas({
             <p className="mb-1.5 font-medium text-ink">마커 색</p>
             <p className="flex items-center gap-2">
               <span
-                className="inline-block h-3 w-3 shrink-0 rounded-full"
-                style={{ background: "#d89a2b", boxShadow: "0 0 0 2px #12202a" }}
+                className="live-dot h-3 w-3"
+                style={{ boxShadow: "0 0 0 2px #12202a", "--twinkle-delay": legendDelay } as CSSProperties}
               />
               1시간 이내 수신
             </p>

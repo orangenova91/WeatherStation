@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@source inline("leaflet-container station-marker station-marker-dot");
+@source inline("leaflet-container station-marker station-marker-dot station-marker-dot--fresh station-marker-dot--stale live-dot");
 
 :root {
   --paper: #f3efe6;
@@ -10,6 +10,8 @@
   --sidebar: #12202a;
   --sidebar-muted: #93a4b0;
   --accent: #d89a2b;
+  --live: #2e9e5b;
+  --live-bright: #7be3a4;
   --danger: #9f2d3a;
 }
 
@@ -52,11 +54,69 @@ input {
 }
 
 .station-marker-dot {
+  position: relative;
   display: block;
+  box-sizing: border-box;
   width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: #d89a2b;
   border: 2px solid #12202a;
-  box-shadow: 0 0 0 4px rgba(216, 154, 43, 0.35);
+}
+
+.station-marker-dot--fresh {
+  background: var(--live);
+  box-shadow: 0 0 0 4px rgba(46, 158, 91, 0.3);
+}
+
+.station-marker-dot--stale {
+  background: #9aa6ae;
+  box-shadow: 0 0 0 4px rgba(154, 166, 174, 0.45);
+}
+
+.station-marker-dot--fresh::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--live-bright);
+  opacity: 0;
+  animation: station-twinkle 1.8s ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0ms);
+  pointer-events: none;
+}
+
+.live-dot {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--live);
+}
+
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--live-bright);
+  opacity: 0;
+  animation: station-twinkle 1.8s ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0ms);
+}
+
+@keyframes station-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-marker-dot--fresh::after,
+  .live-dot::after {
+    animation: none;
+  }
 }
